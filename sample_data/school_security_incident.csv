@@ -1,0 +1,7 @@
+timestamp,org_type,event_type,user,src_ip,status,resource,description
+2026-06-01 10:01:22,school,login,admin,185.43.22.10,failed,student_portal,Failed login for admin
+2026-06-01 10:01:25,school,login,admin,185.43.22.10,failed,student_portal,Failed login for admin
+2026-06-01 10:01:29,school,login,admin,185.43.22.10,failed,student_portal,Failed login for admin
+2026-06-01 10:02:10,school,login,admin,185.43.22.10,success,student_portal,Successful login for admin
+2026-06-01 10:05:44,school,file_access,admin,185.43.22.10,warning,/student_records/private.csv,Student records file accessed
+2026-06-01 10:08:12,school,permission_change,admin,185.43.22.10,warning,/student_records/private.csv,Permission changed on student records file
