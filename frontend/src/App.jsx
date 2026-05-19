@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import "./App.css";
 
 const API_BASE_URL = "http://localhost:8001";
@@ -6,24 +6,24 @@ const API_BASE_URL = "http://localhost:8001";
 function getPatternExplanation(pattern) {
   const explanations = {
     "Repeated failed logins from the same IP":
-      "Multiple failed login attempts were detected from one source IP. This can indicate brute-force or credential guessing.",
+      "Multiple failed login attempts came from the same source IP.",
     "Successful login after repeated failures":
-      "The same suspicious IP eventually logged in successfully, which makes the sequence more concerning.",
+      "The same suspicious IP later completed a successful login.",
     "Sensitive file access detected":
-      "A private student records file was accessed after the suspicious login activity.",
+      "A private student records file was accessed after suspicious login activity.",
     "Permission change detected after suspicious activity":
-      "File permissions were changed after the suspicious sequence, which may increase data exposure risk.",
+      "File permissions were changed after the suspicious sequence.",
   };
 
-  return explanations[pattern] || "This pattern was detected from the Splunk security logs.";
+  return explanations[pattern] || "This pattern was detected from the Splunk logs.";
 }
 
-function getPatternTone(pattern) {
-  if (pattern.includes("failed logins")) return "orange";
-  if (pattern.includes("Successful login")) return "red";
-  if (pattern.includes("Sensitive file")) return "purple";
-  if (pattern.includes("Permission change")) return "blue";
-  return "gray";
+function getPatternClass(pattern) {
+  if (pattern.includes("failed logins")) return "pattern-warning";
+  if (pattern.includes("Successful login")) return "pattern-danger";
+  if (pattern.includes("Sensitive file")) return "pattern-purple";
+  if (pattern.includes("Permission change")) return "pattern-blue";
+  return "pattern-neutral";
 }
 
 function App() {
@@ -57,146 +57,186 @@ function App() {
     fetchSecurityData();
   }, []);
 
+  const logStats = useMemo(() => {
+    return {
+      failed: logs.filter((log) => log.status === "failed").length,
+      warning: logs.filter((log) => log.status === "warning").length,
+      success: logs.filter((log) => log.status === "success").length,
+    };
+  }, [logs]);
+
   if (loading) {
     return (
-      <div className="page">
-        <div className="loading-card">
-          <div className="loader-dot" />
-          <p>Loading CivicShield AI...</p>
-        </div>
-      </div>
+      <main className="page">
+        <div className="state-card">Loading CivicShield AI...</div>
+      </main>
     );
   }
 
   if (error) {
     return (
-      <div className="page">
-        <div className="error-card">Error: {error}</div>
-      </div>
+      <main className="page">
+        <div className="state-card error-card">Error: {error}</div>
+      </main>
     );
   }
 
   return (
-    <div className="page">
-      <header className="hero">
-        <div className="hero-center">
-          <div className="hero-badge">Splunk → FastAPI → React</div>
-          <p className="eyebrow">Splunk-powered Security Copilot</p>
-          <h1>CivicShield AI</h1>
-          <p className="subtitle">
-            A clean test dashboard for verifying backend integration, incident analysis,
-            and Splunk evidence retrieval.
-          </p>
+    <main className="page">
+      <header className="topbar">
+        <div className="brand">
+          <div className="brand-mark">C</div>
+          <div>
+            <p>CivicShield AI</p>
+            <span>Splunk-powered security dashboard</span>
+          </div>
         </div>
 
-        <div className="connection-card">
-          <div className="connection-dot" />
-          <div>
-            <strong>Backend Connected</strong>
-            <span>Live data from FastAPI</span>
-          </div>
+        <nav className="nav">
+          <span className="active">Dashboard</span>
+          <span>Evidence</span>
+          <span>Analysis</span>
+        </nav>
+
+        <div className="backend-status">
+          <span className="status-dot" />
+          Backend Connected
         </div>
       </header>
 
+      <section className="hero-section">
+        <div>
+          <p className="eyebrow">Security Copilot</p>
+          <h1>Incident Review Dashboard</h1>
+          <p className="subtitle">
+            Review suspicious activity detected from Splunk logs and understand the evidence behind the analysis.
+          </p>
+        </div>
+      </section>
+
       {analysis && (
-        <section className="card incident-panel">
-          <div className="incident-top">
-            <div className="incident-copy">
-              <div className="section-kicker">
-                <span className="kicker-dot red-dot" />
-                Incident Analysis
+        <>
+          <section className="summary-grid">
+            <article className="summary-card risk-summary">
+              <p className="card-label">Risk Level</p>
+              <div className="summary-value-row">
+                <strong>{analysis.risk_level}</strong>
+                <span className="risk-pill">{analysis.risk_level} Risk</span>
               </div>
+              <p>Priority based on detected log patterns.</p>
+            </article>
 
-              <h2>{analysis.incident_type}</h2>
+            <article className="summary-card">
+              <p className="card-label">Events Analyzed</p>
+              <strong>{analysis.total_events_analyzed}</strong>
+              <p>Logs retrieved from the Splunk index.</p>
+            </article>
 
-              <p className="incident-description">{analysis.summary}</p>
+            <article className="summary-card">
+              <p className="card-label">Evidence Items</p>
+              <strong>{analysis.evidence_count}</strong>
+              <p>Signals used in the incident decision.</p>
+            </article>
 
-              <div className="quick-alert">
-                <strong>Why this matters:</strong>
-                <span>
-                  This sequence shows failed admin logins, a later successful login,
-                  sensitive file access, and a permission change.
-                </span>
-              </div>
-            </div>
+            <article className="summary-card">
+              <p className="card-label">Confidence</p>
+              <strong>{analysis.confidence}</strong>
+              <p>Rule-based detection confidence.</p>
+            </article>
+          </section>
 
-            <div className="risk-panel">
-              <div className="risk-top">
-                <span className={`risk-badge risk-${analysis.risk_level?.toLowerCase()}`}>
-                  {analysis.risk_level} Risk
-                </span>
-                <p>Priority incident</p>
-              </div>
-
-              <div className="risk-score">
-                <span>Risk Score</span>
-                <strong>87</strong>
-                <p>Based on {analysis.detected_patterns?.length || 0} detected patterns</p>
-              </div>
-
-              <div className="risk-meta">
+          <section className="main-grid">
+            <article className="panel incident-card">
+              <div className="panel-header">
                 <div>
-                  <p className="label">Confidence</p>
-                  <strong>{analysis.confidence}</strong>
-                </div>
-
-                <div>
-                  <p className="label">Events</p>
-                  <strong>{analysis.total_events_analyzed}</strong>
-                </div>
-
-                <div>
-                  <p className="label">Evidence</p>
-                  <strong>{analysis.evidence_count}</strong>
+                  <p className="card-label">Incident Analysis</p>
+                  <h2>{analysis.incident_type}</h2>
                 </div>
               </div>
-            </div>
-          </div>
 
-          <div className="analysis-divider" />
+              <p className="incident-text">{analysis.summary}</p>
 
-          <div className="pattern-section">
-            <div className="pattern-heading">
-              <div className="section-kicker">
-                <span className="kicker-dot blue-dot" />
-                Detected Patterns
+              <div className="callout">
+                <span className="callout-icon">!</span>
+                <div>
+                  <strong>Main concern</strong>
+                  <p>
+                    Failed admin login attempts were followed by a successful login, sensitive file access,
+                    and a permission change.
+                  </p>
+                </div>
               </div>
-              <h3>Suspicious sequence found</h3>
-              <p>
-                CivicShield grouped the Splunk logs into a readable incident chain so
-                non-expert users can understand what happened.
-              </p>
+            </article>
+
+            <aside className="panel health-card">
+              <div className="panel-header">
+                <div>
+                  <p className="card-label">Log Status</p>
+                  <h2>{logs.length} Events</h2>
+                </div>
+              </div>
+
+              <div className="donut">
+                <div className="donut-hole">
+                  <strong>{logs.length}</strong>
+                  <span>Total</span>
+                </div>
+              </div>
+
+              <div className="legend">
+                <div>
+                  <span className="legend-dot failed" />
+                  <p>Failed</p>
+                  <strong>{logStats.failed}</strong>
+                </div>
+                <div>
+                  <span className="legend-dot warning" />
+                  <p>Warning</p>
+                  <strong>{logStats.warning}</strong>
+                </div>
+                <div>
+                  <span className="legend-dot success" />
+                  <p>Success</p>
+                  <strong>{logStats.success}</strong>
+                </div>
+              </div>
+            </aside>
+          </section>
+
+          <section className="panel patterns-panel">
+            <div className="panel-header">
+              <div>
+                <p className="card-label">Detected Patterns</p>
+                <h2>Suspicious sequence found</h2>
+              </div>
+              <span className="small-pill">{analysis.detected_patterns?.length || 0} patterns</span>
             </div>
 
-            <div className="pattern-list-clean">
+            <div className="patterns-grid">
               {analysis.detected_patterns?.map((pattern, index) => (
-                <div className={`pattern-row pattern-${getPatternTone(pattern)}`} key={index}>
-                  <div className="pattern-number">{index + 1}</div>
+                <article className={`pattern-card ${getPatternClass(pattern)}`} key={index}>
+                  <span>{String(index + 1).padStart(2, "0")}</span>
                   <div>
                     <strong>{pattern}</strong>
                     <p>{getPatternExplanation(pattern)}</p>
                   </div>
-                </div>
+                </article>
               ))}
             </div>
-          </div>
-        </section>
+          </section>
+        </>
       )}
 
-      <section className="card evidence-card">
-        <div className="section-header">
+      <section className="panel logs-panel">
+        <div className="panel-header">
           <div>
-            <div className="section-kicker">
-              <span className="kicker-dot green-dot" />
-              Splunk Evidence
-            </div>
+            <p className="card-label">Splunk Evidence</p>
             <h2>Security Logs</h2>
-            <p className="table-subtitle">
-              Raw security activity retrieved from Splunk and structured by FastAPI.
+            <p className="panel-subtitle">
+              Raw activity retrieved from Splunk and structured through the FastAPI backend.
             </p>
           </div>
-
-          <div className="count-pill">{logs.length} events</div>
+          <span className="small-pill">{logs.length} events</span>
         </div>
 
         <div className="table-wrapper">
@@ -215,16 +255,7 @@ function App() {
 
             <tbody>
               {logs.map((log, index) => (
-                <tr
-                  key={index}
-                  className={
-                    log.status === "failed"
-                      ? "row-failed"
-                      : log.status === "warning"
-                      ? "row-warning"
-                      : "row-success"
-                  }
-                >
+                <tr key={index}>
                   <td className="timestamp-cell">{log.timestamp}</td>
                   <td>
                     <span className="event-chip">{log.event_type}</span>
@@ -232,7 +263,7 @@ function App() {
                   <td>{log.user}</td>
                   <td className="ip-cell">{log.src_ip}</td>
                   <td>
-                    <span className={`status status-${log.status}`}>
+                    <span className={`status-badge status-${log.status}`}>
                       {log.status}
                     </span>
                   </td>
@@ -244,7 +275,7 @@ function App() {
           </table>
         </div>
       </section>
-    </div>
+    </main>
   );
 }
 
