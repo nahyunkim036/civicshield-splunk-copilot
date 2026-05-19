@@ -64,16 +64,23 @@ def get_splunk_logs():
             if "result" in data_line:
                 result = data_line["result"]
 
-                events.append({
+                raw = result.get("_raw", "")
+                parts = raw.split(",", 7)
+
+                parsed_event = {
                     "time": result.get("_time"),
-                    "raw": result.get("_raw"),
-                    "event_type": result.get("event_type"),
-                    "user": result.get("user"),
-                    "src_ip": result.get("src_ip"),
-                    "status": result.get("status"),
-                    "resource": result.get("resource"),
-                    "description": result.get("description"),
-                })
+                    "raw": raw,
+                    "timestamp": parts[0] if len(parts) > 0 else None,
+                    "org_type": parts[1] if len(parts) > 1 else None,
+                    "event_type": parts[2] if len(parts) > 2 else None,
+                    "user": parts[3] if len(parts) > 3 else None,
+                    "src_ip": parts[4] if len(parts) > 4 else None,
+                    "status": parts[5] if len(parts) > 5 else None,
+                    "resource": parts[6] if len(parts) > 6 else None,
+                    "description": parts[7] if len(parts) > 7 else None,
+                }
+
+                events.append(parsed_event)
 
         return {
             "source": "splunk",
