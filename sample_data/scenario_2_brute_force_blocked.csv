@@ -1,0 +1,7 @@
+timestamp,org_type,scenario_id,event_type,user,src_ip,status,resource,description
+2026-06-02 09:00:01,school,scenario_2,login,admin,45.22.18.91,failed,student_portal,Failed login attempt for admin
+2026-06-02 09:00:08,school,scenario_2,login,admin,45.22.18.91,failed,student_portal,Failed login attempt for admin
+2026-06-02 09:00:15,school,scenario_2,login,admin,45.22.18.91,failed,student_portal,Failed login attempt for admin
+2026-06-02 09:00:22,school,scenario_2,login,admin,45.22.18.91,failed,student_portal,Failed login attempt for admin
+2026-06-02 09:00:30,school,scenario_2,account_lock,admin,45.22.18.91,warning,student_portal,Admin account temporarily locked after repeated failures
+2026-06-02 09:00:35,school,scenario_2,ip_block,admin,45.22.18.91,blocked,firewall,Source IP blocked by security policy
