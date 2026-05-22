@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routes.splunk_logs_routes import router as splunk_logs_router
 from routes.splunk_analysis_routes import router as splunk_analysis_router
+from routes.splunk_attack_flow_routes import router as splunk_attack_flow_router
 
 app = FastAPI(title="CivicShield AI Backend")
 
@@ -26,3 +27,4 @@ def health_check():
 
 app.include_router(splunk_logs_router)
 app.include_router(splunk_analysis_router)
+app.include_router(splunk_attack_flow_router)
