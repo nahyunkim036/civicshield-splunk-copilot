@@ -1,36 +1,26 @@
-import AttackFlowGraph from "../components/flow/AttackFlowGraph";
+import AttackFlowCanvas from "../components/flow/AttackFlowCanvas";
 
-function AttackFlowPage({ attackFlow, onNodeSelect }) {
+function AttackFlowPage({ attackFlow }) {
   return (
-    <div className="page-stack">
-      <section className="hero-glass smaller-hero">
-        <p className="section-label">Visual Incident Story</p>
-        <h1>Attack Flow</h1>
-        <p>
-          Instead of reading raw logs line by line, follow the incident as a visual
-          sequence of actions and outcomes.
-        </p>
-      </section>
+    <div className="flow-page-layout">
+      <section className="dashboard-hero flow-hero">
+        <div>
+          <p className="section-label">Visual Incident Story</p>
+          <h1>Attack Flow Intelligence</h1>
+          <p>
+            CivicShield converts Splunk evidence into an interactive attack graph
+            so non-expert teams can see how the incident unfolded.
+          </p>
+        </div>
 
-      <AttackFlowGraph attackFlow={attackFlow} onNodeSelect={onNodeSelect} />
-
-      <section className="glass-panel compact-section">
-        <p className="section-label">How to read this</p>
-        <div className="legend-grid">
-          <div>
-            <span className="legend-dot warning-dot" />
-            Warning means suspicious activity.
-          </div>
-          <div>
-            <span className="legend-dot danger-dot" />
-            High means possible compromise.
-          </div>
-          <div>
-            <span className="legend-dot resolved-dot" />
-            Resolved means the system contained the activity.
-          </div>
+        <div className="hero-scenario-card">
+          <span>Graph Mode</span>
+          <strong>Node-Link Flow</strong>
+          <p>Click nodes to inspect evidence</p>
         </div>
       </section>
+
+      <AttackFlowCanvas attackFlow={attackFlow} />
     </div>
   );
 }

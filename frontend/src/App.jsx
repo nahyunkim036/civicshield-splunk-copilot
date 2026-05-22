@@ -105,10 +105,7 @@ function App() {
       )}
 
       {activeTab === "attack-flow" && (
-        <AttackFlowPage
-          attackFlow={attackFlow}
-          onNodeSelect={handleNodeSelect}
-        />
+        <AttackFlowPage attackFlow={attackFlow} />
       )}
 
       {activeTab === "evidence" && (
