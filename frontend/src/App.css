@@ -1251,3 +1251,113 @@ tbody tr:hover {
     flex-direction: column;
   }
 }
+
+/* Reduce unnecessary boxed UI */
+
+.dashboard-hero > div:first-child {
+  padding: 18px 4px 18px;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.dashboard-hero > div:first-child::before {
+  display: none;
+}
+
+.dashboard-hero p {
+  max-width: 620px;
+  font-size: 16px;
+}
+
+.hero-scenario-card {
+  align-self: center;
+  justify-self: end;
+  width: fit-content;
+  min-width: 220px;
+  padding: 18px 20px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.46);
+  border: 0;
+  box-shadow:
+    0 18px 50px rgba(70, 85, 120, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(24px);
+}
+
+.hero-scenario-card::before {
+  display: none;
+}
+
+.hero-scenario-card strong {
+  font-size: 21px;
+}
+
+.hero-scenario-card p {
+  font-size: 13px;
+}
+
+.metric-card-bi {
+  min-height: auto;
+  padding: 18px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.38);
+  border: 0;
+  box-shadow: none;
+  backdrop-filter: blur(18px);
+}
+
+.metric-card-bi::before {
+  display: none;
+}
+
+.metric-card-top {
+  margin-bottom: 14px;
+}
+
+.metric-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 13px;
+}
+
+.metric-card-bi strong {
+  font-size: 24px;
+}
+
+.metric-card-bi span:last-child {
+  margin-top: 8px;
+  font-size: 13px;
+}
+
+.incident-brief-card {
+  background: rgba(255, 255, 255, 0.44);
+  box-shadow: none;
+}
+
+.incident-brief-card::before {
+  opacity: 0.35;
+}
+
+.brief-body p {
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+.flow-legend div {
+  background: transparent;
+  padding: 4px 0;
+  border-radius: 0;
+  color: #667085;
+  font-size: 13px;
+  box-shadow: none;
+}
+
+.detail-section {
+  margin-top: 22px;
+  padding: 18px 0 0;
+  border-radius: 0;
+  background: transparent;
+  border-top: 1px solid rgba(148, 163, 184, 0.16);
+}
