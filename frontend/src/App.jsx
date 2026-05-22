@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import "./App.css";
 
 import { fetchSecurityBundle } from "./api/splunkApi";
-import TopNav from "./components/TopNav";
-import DetailDrawer from "./components/DetailDrawer";
+import TopNav from "./components/layout/TopNav";
+import DetailDrawer from "./components/shared/DetailDrawer";
 
 import DashboardPage from "./pages/DashboardPage";
 import AttackFlowPage from "./pages/AttackFlowPage";

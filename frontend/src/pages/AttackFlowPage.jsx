@@ -1,4 +1,4 @@
-import AttackFlowGraph from "../components/AttackFlowGraph";
+import AttackFlowGraph from "../components/flow/AttackFlowGraph";
 
 function AttackFlowPage({ attackFlow, onNodeSelect }) {
   return (
