@@ -17,6 +17,7 @@ function App() {
   const [attackFlow, setAttackFlow] = useState(null);
   const [logs, setLogs] = useState([]);
   const [drawer, setDrawer] = useState(null);
+  const [story, setStory] = useState(null);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -26,8 +27,11 @@ function App() {
       try {
         const data = await fetchSecurityBundle(SELECTED_SCENARIO);
 
+        console.log("Story data:", data.story);
+
         setAnalysis(data.analysis);
         setAttackFlow(data.attackFlow);
+        setStory(data.story);
         setLogs(data.logs);
       } catch (err) {
         setError(err.message || "Failed to load dashboard data.");
