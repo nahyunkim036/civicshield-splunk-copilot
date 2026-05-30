@@ -5,8 +5,8 @@ import ResponseCoach from "../components/story/ResponseCoach";
 function StoryModePage({ story }) {
   if (!story) {
     return (
-      <section className="story-page-layout">
-        <div className="story-hero">
+      <section className="story-control-room">
+        <div className="story-command-header">
           <p className="section-label">Story Mode</p>
           <h1>Incident Story Simulator</h1>
           <p>Story data is not available yet.</p>
@@ -16,28 +16,37 @@ function StoryModePage({ story }) {
   }
 
   return (
-    <section className="story-page-layout">
-      <div className="story-hero">
+    <section className="story-control-room">
+      <div className="story-command-header">
         <div>
           <p className="section-label">Incident Story Simulator</p>
           <h1>{story.story_title}</h1>
-          <p>{story.plain_english_summary}</p>
+          <p>Splunk evidence converted into a replayable incident path.</p>
         </div>
 
-        <div className="story-outcome">
+        <div className="outcome-chip">
           <span>Outcome</span>
           <strong>{story.outcome}</strong>
-          <p>{story.timeline_count} story stages</p>
+          <p>{story.timeline_count} stages</p>
         </div>
       </div>
 
-      <div className="story-grid">
+      <div className="story-command-grid">
         <IncidentStoryTimeline timeline={story.timeline} />
 
-        <div className="story-side-stack">
+        <aside className="story-command-side">
+          <div className="signal-card">
+            <span className="signal-dot" />
+            <div>
+              <p className="section-label">Live Read</p>
+              <h2>{story.outcome}</h2>
+              <p>{story.plain_english_summary}</p>
+            </div>
+          </div>
+
           <WhatIfSimulator scenarios={story.what_if_scenarios} />
           <ResponseCoach steps={story.response_coach} />
-        </div>
+        </aside>
       </div>
     </section>
   );
