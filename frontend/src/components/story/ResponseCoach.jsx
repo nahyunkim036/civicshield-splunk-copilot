@@ -1,36 +1,49 @@
+import { useState } from "react";
+
 function ResponseCoach({ steps = [] }) {
+  const [selectedPriority, setSelectedPriority] = useState(
+    steps[0]?.priority || 1
+  );
+
   if (!steps.length) {
     return (
-      <section className="story-panel">
+      <section className="coach-panel">
         <p className="section-label">Response Coach</p>
-        <h2>No response steps available</h2>
+        <h2>No actions</h2>
       </section>
     );
   }
 
-  return (
-    <section className="story-panel response-coach-panel">
-      <div className="panel-heading compact">
-        <div>
-          <p className="section-label">Response Coach</p>
-          <h2>Suggested next steps</h2>
-        </div>
+  const selectedStep =
+    steps.find((step) => step.priority === selectedPriority) || steps[0];
 
-        <span className="soft-pill">{steps.length} actions</span>
+  return (
+    <section className="coach-panel">
+      <div className="coach-header">
+        <p className="section-label">Next Moves</p>
+        <h2>Response stack</h2>
       </div>
 
-      <div className="response-list">
+      <div className="action-stack">
         {steps.map((step) => (
-          <article key={step.priority} className="response-step">
-            <div className="response-number">{step.priority}</div>
-
-            <div>
-              <h3>{step.action}</h3>
-              <p>{step.why}</p>
-              <span>{step.owner}</span>
-            </div>
-          </article>
+          <button
+            key={step.priority}
+            className={
+              selectedStep.priority === step.priority
+                ? "action-item active"
+                : "action-item"
+            }
+            onClick={() => setSelectedPriority(step.priority)}
+          >
+            <span>{step.priority}</span>
+            <strong>{step.action}</strong>
+          </button>
         ))}
+      </div>
+
+      <div className="coach-detail">
+        <span>{selectedStep.owner}</span>
+        <p>{selectedStep.why}</p>
       </div>
     </section>
   );
