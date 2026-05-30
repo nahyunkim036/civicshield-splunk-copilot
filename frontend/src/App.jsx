@@ -8,6 +8,7 @@ import DetailDrawer from "./components/shared/DetailDrawer";
 import DashboardPage from "./pages/DashboardPage";
 import AttackFlowPage from "./pages/AttackFlowPage";
 import EvidencePage from "./pages/EvidencePage";
+import StoryModePage from "./pages/StoryModePage";
 
 const SELECTED_SCENARIO = "scenario_2";
 
@@ -106,6 +107,10 @@ function App() {
           onShowDetails={setDrawer}
           onTabChange={setActiveTab}
         />
+      )}
+
+      {activeTab === "story" && (
+        <StoryModePage story={story} />
       )}
 
       {activeTab === "attack-flow" && (

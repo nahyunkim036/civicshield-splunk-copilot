@@ -1,6 +1,7 @@
 function TopNav({ activeTab, onTabChange }) {
   const tabs = [
     { id: "dashboard", label: "Dashboard" },
+    { id: "story", label: "Story Mode" },
     { id: "attack-flow", label: "Attack Flow" },
     { id: "evidence", label: "Evidence" },
   ];
