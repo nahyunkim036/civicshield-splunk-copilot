@@ -1,53 +1,63 @@
+import { useMemo, useState } from "react";
+
 function IncidentStoryTimeline({ timeline = [] }) {
+  const [selectedStep, setSelectedStep] = useState(timeline[0]?.step || 1);
+
+  const selectedStage = useMemo(() => {
+    return timeline.find((item) => item.step === selectedStep) || timeline[0];
+  }, [timeline, selectedStep]);
+
   if (!timeline.length) {
     return (
-      <section className="story-panel">
-        <p className="section-label">Incident Timeline</p>
-        <h2>No story timeline available</h2>
-        <p className="story-muted">
-          CivicShield could not build a timeline from the available events.
-        </p>
+      <section className="story-stage-board">
+        <p className="section-label">Incident Storyline</p>
+        <h2>No timeline available</h2>
       </section>
     );
   }
 
   return (
-    <section className="story-panel story-timeline-panel">
-      <div className="panel-heading compact">
+    <section className="story-stage-board">
+      <div className="story-stage-header">
         <div>
-          <p className="section-label">Incident Storyline</p>
-          <h2>How the incident unfolded</h2>
+          <p className="section-label">Incident Path</p>
+          <h2>Attack sequence</h2>
         </div>
 
         <span className="soft-pill">{timeline.length} stages</span>
       </div>
 
-      <div className="story-timeline">
-        {timeline.map((item) => (
-          <article
+      <div className="stage-rail">
+        {timeline.map((item, index) => (
+          <button
             key={`${item.step}-${item.stage}`}
-            className={`story-step story-${item.severity}`}
+            className={
+              selectedStage.step === item.step
+                ? `stage-dot active story-${item.severity}`
+                : `stage-dot story-${item.severity}`
+            }
+            onClick={() => setSelectedStep(item.step)}
           >
-            <div className="story-step-marker">
-              <span>{item.step}</span>
-            </div>
-
-            <div className="story-step-content">
-              <div className="story-step-meta">
-                <span>{item.time}</span>
-                <span>{item.severity}</span>
-              </div>
-
-              <h3>{item.stage}</h3>
-              <strong>{item.headline}</strong>
-              <p>{item.narration}</p>
-
-              <div className="story-evidence-hint">
-                {item.evidence_hint}
-              </div>
-            </div>
-          </article>
+            <span>{String(item.step).padStart(2, "0")}</span>
+            <strong>{item.stage}</strong>
+            {index < timeline.length - 1 && <div className="stage-line" />}
+          </button>
         ))}
+      </div>
+
+      <div className={`selected-stage-card story-${selectedStage.severity}`}>
+        <div className="selected-stage-meta">
+          <span>{selectedStage.time}</span>
+          <span>{selectedStage.severity}</span>
+        </div>
+
+        <h3>{selectedStage.headline}</h3>
+        <p>{selectedStage.narration}</p>
+
+        <div className="evidence-strip">
+          <span>Evidence</span>
+          <strong>{selectedStage.evidence_hint}</strong>
+        </div>
       </div>
     </section>
   );
