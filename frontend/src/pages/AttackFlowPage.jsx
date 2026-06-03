@@ -1,27 +1,36 @@
 import AttackFlowCanvas from "../components/flow/AttackFlowCanvas";
+import ControlFailureLab from "../components/drill/ControlFailureLab";
+import AutoPlaybook from "../components/drill/AutoPlaybook";
 
-function AttackFlowPage({ attackFlow }) {
+function AttackFlowPage({ attackFlow, story, logs }) {
   return (
-    <div className="flow-page-layout">
-      <section className="dashboard-hero flow-hero">
+    <section className="attack-movie-page">
+      <div className="movie-header">
         <div>
-          <p className="section-label">Visual Incident Story</p>
-          <h1>Attack Flow Intelligence</h1>
+          <p className="eyebrow">Attack Movie</p>
+          <h1>{story?.story_title || attackFlow?.flow_title || "Incident Replay"}</h1>
           <p>
-            CivicShield converts Splunk evidence into an interactive attack graph
-            so non-expert teams can see how the incident unfolded.
+            Watch the attack path unfold from Splunk evidence. No report reading.
+            Just replay, inspect, and respond.
           </p>
         </div>
 
-        <div className="hero-scenario-card">
-          <span>Graph Mode</span>
-          <strong>Node-Link Flow</strong>
-          <p>Click nodes to inspect evidence</p>
+        <div className="movie-stat">
+          <span>Evidence</span>
+          <strong>{logs.length}</strong>
+          <p>Splunk events</p>
         </div>
-      </section>
+      </div>
 
-      <AttackFlowCanvas attackFlow={attackFlow} />
-    </div>
+      <div className="movie-layout">
+        <AttackFlowCanvas attackFlow={attackFlow} story={story} />
+
+        <aside className="movie-side-stack">
+          <ControlFailureLab scenarios={story?.what_if_scenarios || []} />
+          <AutoPlaybook steps={story?.response_coach || []} />
+        </aside>
+      </div>
+    </section>
   );
 }
 
