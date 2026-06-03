@@ -2,41 +2,48 @@ function NodeDetailPanel({ selectedNode }) {
   if (!selectedNode) {
     return (
       <aside className="node-detail-panel empty-detail">
-        <p className="section-label">Node Detail</p>
-        <h2>Select a step</h2>
-        <p>
-          Click any node in the attack graph to inspect why CivicShield included
-          it in the incident flow.
-        </p>
+        <p className="eyebrow">Evidence Inspector</p>
+        <h2>Select a stage</h2>
+        <p>Click a node in the attack movie to inspect the Splunk-backed evidence.</p>
       </aside>
     );
   }
 
+  const evidence = selectedNode.evidence || {};
+
   return (
     <aside className="node-detail-panel">
-      <p className="section-label">Selected Step</p>
-      <h2>{selectedNode.label}</h2>
+      <p className="eyebrow">Evidence Inspector</p>
+      <h2>{selectedNode.stage}</h2>
 
-      <div className={`detail-severity severity-pill-${selectedNode.severity}`}>
-        {selectedNode.severity}
+      <div className="detail-section">
+        <span>Signal</span>
+        <strong>{selectedNode.risk_signal}</strong>
       </div>
 
       <div className="detail-section">
-        <span>Observed Value</span>
-        <strong>{selectedNode.value}</strong>
+        <span>Timestamp</span>
+        <strong>{evidence.timestamp}</strong>
       </div>
 
       <div className="detail-section">
-        <span>Why this matters</span>
-        <p>{selectedNode.description}</p>
+        <span>Pod</span>
+        <strong>{evidence.pod}</strong>
       </div>
 
       <div className="detail-section">
-        <span>Investigation Hint</span>
-        <p>
-          Compare this step with nearby events in the evidence timeline to confirm
-          whether the behavior is isolated or part of a larger sequence.
-        </p>
+        <span>Process</span>
+        <strong>{evidence.process || "—"}</strong>
+      </div>
+
+      <div className="detail-section">
+        <span>Destination IP</span>
+        <strong>{evidence.dest_ip || "—"}</strong>
+      </div>
+
+      <div className="detail-section">
+        <span>File Path</span>
+        <p>{evidence.file_path || "—"}</p>
       </div>
     </aside>
   );
