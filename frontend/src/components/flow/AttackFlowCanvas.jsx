@@ -15,20 +15,21 @@ const nodeTypes = {
 };
 
 function getSeverityColor(severity) {
-  if (severity === "high") return "#fb7185";
-  if (severity === "warning") return "#facc15";
-  if (severity === "resolved") return "#34d399";
-  if (severity === "medium") return "#60a5fa";
-  return "#94a3b8";
+  if (severity === "critical") return "#ffffff";
+  if (severity === "high") return "#ffffff";
+  if (severity === "warning") return "#a3a3a3";
+  if (severity === "resolved") return "#ffffff";
+  if (severity === "medium") return "#d4d4d4";
+  return "#737373";
 }
 
-function buildReactFlowNodes(flowNodes, visibleCount, onSelectNode) {
-  return flowNodes.slice(0, visibleCount).map((node, index) => ({
+function buildReactFlowNodes(movieNodes, visibleCount, onSelectNode) {
+  return movieNodes.slice(0, visibleCount).map((node, index) => ({
     id: node.id,
     type: "customNode",
     position: {
-      x: index * 300,
-      y: index % 2 === 0 ? 90 : 245,
+      x: index * 290,
+      y: index % 2 === 0 ? 80 : 230,
     },
     data: {
       ...node,
@@ -37,15 +38,15 @@ function buildReactFlowNodes(flowNodes, visibleCount, onSelectNode) {
   }));
 }
 
-function buildReactFlowEdges(flowEdges, flowNodes, visibleCount) {
+function buildReactFlowEdges(movieEdges, movieNodes, visibleCount) {
   const visibleNodeIds = new Set(
-    flowNodes.slice(0, visibleCount).map((node) => node.id)
+    movieNodes.slice(0, visibleCount).map((node) => node.id)
   );
 
-  return flowEdges
+  return movieEdges
     .filter((edge) => visibleNodeIds.has(edge.from) && visibleNodeIds.has(edge.to))
     .map((edge, index) => {
-      const targetNode = flowNodes.find((node) => node.id === edge.to);
+      const targetNode = movieNodes.find((node) => node.id === edge.to);
       const color = getSeverityColor(targetNode?.severity);
 
       return {
@@ -60,36 +61,20 @@ function buildReactFlowEdges(flowEdges, flowNodes, visibleCount) {
         },
         style: {
           stroke: color,
-          strokeWidth: 3,
+          strokeWidth: 2,
         },
       };
     });
 }
 
-function getStageLabel(story, currentStep) {
-  const timeline = story?.timeline || [];
-  const stage = timeline[currentStep - 1];
-
-  if (!stage) {
-    return {
-      stage: "Incident Replay",
-      headline: "Play the attack movie to reveal the incident path.",
-      time: "--",
-      severity: "medium",
-    };
-  }
-
-  return stage;
-}
-
-function AttackFlowCanvas({ attackFlow, story }) {
+function AttackFlowCanvas({ attackMovie }) {
   const [selectedNode, setSelectedNode] = useState(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [isPlaying, setIsPlaying] = useState(false);
 
-  const totalNodes = attackFlow?.nodes?.length || 0;
+  const totalNodes = attackMovie?.nodes?.length || 0;
   const visibleCount = Math.min(currentStep, totalNodes || 1);
-  const currentStage = getStageLabel(story, currentStep);
+  const currentStage = attackMovie?.nodes?.[currentStep - 1];
 
   useEffect(() => {
     if (!isPlaying) return;
@@ -101,28 +86,28 @@ function AttackFlowCanvas({ attackFlow, story }) {
 
     const timer = setTimeout(() => {
       setCurrentStep((step) => Math.min(step + 1, totalNodes));
-    }, 1200);
+    }, 1100);
 
     return () => clearTimeout(timer);
   }, [isPlaying, currentStep, totalNodes]);
 
   const reactFlowNodes = useMemo(() => {
     return buildReactFlowNodes(
-      attackFlow?.nodes || [],
+      attackMovie?.nodes || [],
       visibleCount,
       setSelectedNode
     );
-  }, [attackFlow, visibleCount]);
+  }, [attackMovie, visibleCount]);
 
   const reactFlowEdges = useMemo(() => {
     return buildReactFlowEdges(
-      attackFlow?.edges || [],
-      attackFlow?.nodes || [],
+      attackMovie?.edges || [],
+      attackMovie?.nodes || [],
       visibleCount
     );
-  }, [attackFlow, visibleCount]);
+  }, [attackMovie, visibleCount]);
 
-  if (!attackFlow) return null;
+  if (!attackMovie) return null;
 
   function handlePlayPause() {
     setIsPlaying((value) => !value);
@@ -148,7 +133,7 @@ function AttackFlowCanvas({ attackFlow, story }) {
         <div className="movie-control-bar">
           <div>
             <p className="eyebrow">Replay Engine</p>
-            <h2>{attackFlow.flow_title}</h2>
+            <h2>{attackMovie.title}</h2>
           </div>
 
           <div className="movie-buttons">
@@ -171,9 +156,11 @@ function AttackFlowCanvas({ attackFlow, story }) {
         </div>
 
         <div className="current-stage-panel">
-          <span>{currentStage.time}</span>
-          <strong>{currentStage.headline || currentStage.stage}</strong>
-          <p>{currentStage.narration}</p>
+          <span>
+            {currentStage?.time || "--"} · {currentStage?.stage || "Replay"}
+          </span>
+          <strong>{currentStage?.headline || "Ready to replay episode"}</strong>
+          <p>{currentStage?.description || attackMovie.summary}</p>
         </div>
 
         <div className="react-flow-shell">
@@ -184,7 +171,7 @@ function AttackFlowCanvas({ attackFlow, story }) {
             fitView
             fitViewOptions={{ padding: 0.24 }}
           >
-            <Background gap={24} size={1} color="rgba(148,163,184,0.18)" />
+            <Background gap={24} size={1} color="rgba(255,255,255,0.08)" />
             <MiniMap
               pannable
               zoomable
