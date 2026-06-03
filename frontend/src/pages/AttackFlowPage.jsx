@@ -1,45 +1,71 @@
 import AttackFlowCanvas from "../components/flow/AttackFlowCanvas";
-import ControlFailureLab from "../components/drill/ControlFailureLab";
 import AutoPlaybook from "../components/drill/AutoPlaybook";
+import ControlFailureLab from "../components/drill/ControlFailureLab";
 
-function AttackFlowPage({ attackFlow, story, logs }) {
-    return (
-        <section className="attack-movie-page">
-            <div className="movie-header">
-                <div>
-                    <p className="eyebrow">Attack Movie</p>
-                    <h1>{story?.story_title || attackFlow?.flow_title || "Incident Replay"}</h1>
-                    <p>
-                        Watch the attack path unfold from Splunk evidence. No report reading.
-                        Just replay, inspect, and respond.
-                    </p>
-                </div>
+function AttackFlowPage({ episodeData, auditData, onAuditRefresh }) {
+  const episode = episodeData?.episode;
+  const attackMovie = episodeData?.attack_movie;
+  const playbook = episodeData?.playbook || [];
 
-                <div className="movie-stat">
-                    <span>Evidence</span>
-                    <strong>{logs.length}</strong>
-                    <p>Splunk events</p>
-                </div>
-            </div>
+  if (!episode || !attackMovie) return null;
 
-            <div className="movie-layout">
-                <AttackFlowCanvas attackFlow={attackFlow} story={story} />
+  const failureScenarios = [
+    {
+      id: "no_quarantine",
+      question: "No quarantine",
+      likely_outcome:
+        "The suspicious pod remains active and may continue outbound communication.",
+      recommended_control: "Run pod quarantine and apply deny-egress policy.",
+    },
+    {
+      id: "no_network_policy",
+      question: "No egress block",
+      likely_outcome:
+        "The container may keep communicating with an unapproved external IP.",
+      recommended_control: "Apply Kubernetes NetworkPolicy to block egress.",
+    },
+    {
+      id: "no_token_rotation",
+      question: "No token rotation",
+      likely_outcome:
+        "A previously accessed service account token may remain usable.",
+      recommended_control: "Rotate the affected service account token.",
+    },
+  ];
 
-                <aside className="movie-side-stack">
-                    <ControlFailureLab scenarios={story?.what_if_scenarios || []} />
-                    <AutoPlaybook
-                        steps={story?.response_coach || []}
-                        episode={{
-                            pod: "payment-api-7f9d",
-                            namespace: "checkout",
-                            package: "event-stream-lite",
-                            episode_title: story?.story_title,
-                        }}
-                    />
-                </aside>
-            </div>
-        </section>
-    );
+  return (
+    <section className="attack-movie-page">
+      <div className="hero-row compact">
+        <div>
+          <p className="eyebrow">Attack Movie</p>
+          <h1>{attackMovie.title}</h1>
+          <p>
+            Replay the correlated Splunk episode and execute containment actions
+            from the response panel.
+          </p>
+        </div>
+
+        <div className="mini-stat">
+          <span>Audit</span>
+          <strong>{auditData?.count || 0}</strong>
+        </div>
+      </div>
+
+      <div className="movie-grid">
+        <AttackFlowCanvas attackMovie={attackMovie} />
+
+        <aside className="side-stack">
+          <AutoPlaybook
+            steps={playbook}
+            episode={episode}
+            onActionComplete={onAuditRefresh}
+          />
+
+          <ControlFailureLab scenarios={failureScenarios} />
+        </aside>
+      </div>
+    </section>
+  );
 }
 
 export default AttackFlowPage;
