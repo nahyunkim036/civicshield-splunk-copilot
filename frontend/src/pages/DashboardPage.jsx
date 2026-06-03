@@ -1,37 +1,19 @@
-function getPrimaryIp(logs) {
-  return logs.find((log) => log.src_ip)?.src_ip || "Unknown";
-}
+function DashboardPage({ episodeData, auditData, onTabChange }) {
+  const episode = episodeData?.episode;
+  const attackMovie = episodeData?.attack_movie;
+  const architectureMap = episodeData?.architecture_map;
 
-function getBlockedCount(logs) {
-  return logs.filter((log) => log.status === "blocked").length;
-}
-
-function getFailedLoginCount(logs) {
-  return logs.filter(
-    (log) => log.event_type === "login" && log.status === "failed"
-  ).length;
-}
-
-function DashboardPage({ analysis, attackFlow, story, logs, onTabChange }) {
-  const primaryIp = getPrimaryIp(logs);
-  const blockedCount = getBlockedCount(logs);
-  const failedLoginCount = getFailedLoginCount(logs);
-
-  const incidentTitle =
-    story?.story_title || analysis?.incident_type || "Incident Drill";
-
-  const outcome = story?.outcome || "Review";
-  const stageCount = story?.timeline_count || attackFlow?.node_count || 0;
+  if (!episode) return null;
 
   return (
     <section className="command-center">
-      <div className="command-hero">
+      <div className="hero-row">
         <div>
-          <p className="eyebrow">Autonomous Incident Drill Agent</p>
-          <h1>{incidentTitle}</h1>
+          <p className="eyebrow">Attack-to-Quarantine Pipeline</p>
+          <h1>{episode.episode_title}</h1>
           <p>
-            Splunk evidence converted into a replayable attack drill, control
-            simulation, and response playbook.
+            Splunk correlated container telemetry into a supply chain episode.
+            The response agent is ready to isolate the affected workload.
           </p>
         </div>
 
@@ -39,95 +21,102 @@ function DashboardPage({ analysis, attackFlow, story, logs, onTabChange }) {
           className="launch-button"
           onClick={() => onTabChange("attack-flow")}
         >
-          <span>Launch</span>
-          Attack Movie
+          Launch Attack Movie
         </button>
       </div>
 
-      <div className="command-grid">
-        <section className="incident-status-panel">
-          <div className="status-orbit">
-            <div className="status-core">
-              <span>{analysis?.risk_level || "Risk"}</span>
-              <strong>{outcome}</strong>
-            </div>
-          </div>
+      <section className="status-grid">
+        <article>
+          <span>Risk</span>
+          <strong>{episode.risk_level}</strong>
+        </article>
 
-          <div className="status-copy">
-            <p className="eyebrow">Current Drill</p>
-            <h2>{stageCount} stage attack path</h2>
-            <p>
-              The agent identified a compact attack sequence from Splunk logs
-              and prepared it for replay.
-            </p>
-          </div>
-        </section>
+        <article>
+          <span>Score</span>
+          <strong>{episode.risk_score}</strong>
+        </article>
 
-        <section className="signal-strip">
-          <article>
-            <span>Source IP</span>
-            <strong>{primaryIp}</strong>
-          </article>
+        <article>
+          <span>Containment</span>
+          <strong>{episode.containment}</strong>
+        </article>
 
-          <article>
-            <span>Failed Logins</span>
-            <strong>{failedLoginCount}</strong>
-          </article>
+        <article>
+          <span>Audit Actions</span>
+          <strong>{auditData?.count || 0}</strong>
+        </article>
+      </section>
 
-          <article>
-            <span>Blocked</span>
-            <strong>{blockedCount}</strong>
-          </article>
-
-          <article>
-            <span>Evidence</span>
-            <strong>{logs.length}</strong>
-          </article>
-        </section>
-
-        <section className="mini-attack-path">
+      <section className="core-layout">
+        <div className="architecture-panel">
           <div className="panel-heading">
             <div>
-              <p className="eyebrow">Attack Path Preview</p>
-              <h2>{attackFlow?.flow_title || "Attack Flow"}</h2>
+              <p className="eyebrow">Architecture Map</p>
+              <h2>Impacted Runtime Path</h2>
             </div>
-
-            <button
-              className="ghost-button"
-              onClick={() => onTabChange("attack-flow")}
-            >
-              Open
-            </button>
           </div>
 
-          <div className="path-rail">
-            {(attackFlow?.nodes || []).slice(0, 5).map((node, index) => (
-              <div key={node.id} className={`path-node severity-${node.severity}`}>
-                <span>{String(index + 1).padStart(2, "0")}</span>
+          <div className="architecture-map">
+            {(architectureMap?.nodes || []).map((node) => (
+              <div key={node.id} className={`arch-node status-${node.status}`}>
+                <span>{node.type}</span>
                 <strong>{node.label}</strong>
               </div>
             ))}
           </div>
-        </section>
+        </div>
 
-        <section className="compact-playbook">
-          <div className="panel-heading">
+        <div className="episode-panel">
+          <p className="eyebrow">Episode Target</p>
+
+          <div className="target-list">
             <div>
-              <p className="eyebrow">Auto Playbook</p>
-              <h2>Next moves</h2>
+              <span>Package</span>
+              <strong>{episode.package}</strong>
+            </div>
+
+            <div>
+              <span>Pod</span>
+              <strong>{episode.pod}</strong>
+            </div>
+
+            <div>
+              <span>Namespace</span>
+              <strong>{episode.namespace}</strong>
+            </div>
+
+            <div>
+              <span>Events</span>
+              <strong>{episode.event_count}</strong>
             </div>
           </div>
+        </div>
+      </section>
 
-          <div className="playbook-preview">
-            {(story?.response_coach || []).slice(0, 4).map((step) => (
-              <div key={step.priority}>
-                <span>{step.priority}</span>
-                <strong>{step.action}</strong>
-              </div>
-            ))}
+      <section className="path-preview-panel">
+        <div className="panel-heading">
+          <div>
+            <p className="eyebrow">Attack Path</p>
+            <h2>{attackMovie?.node_count || 0} correlated stages</h2>
           </div>
-        </section>
-      </div>
+
+          <button
+            className="ghost-button"
+            onClick={() => onTabChange("attack-flow")}
+          >
+            Replay
+          </button>
+        </div>
+
+        <div className="path-preview">
+          {(attackMovie?.nodes || []).map((node) => (
+            <div key={node.id} className={`path-preview-node severity-${node.severity}`}>
+              <span>{String(node.step).padStart(2, "0")}</span>
+              <strong>{node.label}</strong>
+            </div>
+          ))}
+        </div>
+      </section>
     </section>
   );
 }
