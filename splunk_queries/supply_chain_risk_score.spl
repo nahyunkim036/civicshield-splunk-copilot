@@ -1,0 +1,24 @@
+index=civic_supply_chain_logs
+| eval score=case(
+    severity="critical", 40,
+    severity="high", 25,
+    severity="medium", 10,
+    severity="low", 3,
+    severity="resolved", 0,
+    true(), 1
+)
+| stats 
+    sum(score) as raw_risk_score
+    values(event_type) as signals
+    values(status) as statuses
+    values(dest_ip) as dest_ips
+  by pod package image
+| eval risk_score=if(raw_risk_score>100,100,raw_risk_score)
+| eval risk_level=case(
+    risk_score>=70, "Critical",
+    risk_score>=40, "High",
+    risk_score>=20, "Medium",
+    true(), "Low"
+)
+| table pod package image risk_score risk_level signals statuses dest_ips
+| sort - risk_score

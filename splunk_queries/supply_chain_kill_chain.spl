@@ -1,0 +1,14 @@
+index=civic_supply_chain_logs
+| eval kill_chain_stage=case(
+    event_type="package_loaded", "Supply Chain Entry",
+    event_type="process_start", "Execution",
+    event_type="file_access" AND like(file_path,"%serviceaccount%"), "Credential Access",
+    event_type="network_connection", "Command and Control",
+    event_type="privilege_escalation", "Privilege Escalation",
+    event_type="quarantine", "Containment",
+    event_type="network_policy", "Network Isolation",
+    event_type="audit", "Audit Trail",
+    true(), "Other"
+)
+| table timestamp pod package event_type kill_chain_stage severity status description
+| sort timestamp

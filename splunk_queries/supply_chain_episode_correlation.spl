@@ -1,0 +1,34 @@
+index=civic_supply_chain_logs
+| eval risk_signal=case(
+    event_type="package_loaded", "supply_chain_entry",
+    event_type="process_start", "unexpected_execution",
+    event_type="file_access" AND like(file_path,"%serviceaccount%"), "credential_access",
+    event_type="network_connection" AND status="warning", "external_c2_connection",
+    event_type="privilege_escalation", "privilege_escalation",
+    event_type="quarantine", "containment",
+    event_type="network_policy", "egress_block",
+    event_type="audit", "audit_record",
+    true(), "other"
+)
+| stats 
+    earliest(timestamp) as first_seen
+    latest(timestamp) as last_seen
+    values(event_type) as event_types
+    values(risk_signal) as risk_signals
+    values(dest_ip) as dest_ips
+    values(file_path) as file_paths
+    values(status) as statuses
+    values(severity) as severities
+    count as event_count
+  by environment service namespace pod image package src_ip
+| eval episode_type=case(
+    mvfind(risk_signals,"credential_access")>=0 AND mvfind(risk_signals,"external_c2_connection")>=0, "Possible Supply Chain Exfiltration",
+    mvfind(risk_signals,"privilege_escalation")>=0, "Privilege Escalation Attempt",
+    true(), "Suspicious Container Behavior"
+)
+| eval containment=case(
+    mvfind(risk_signals,"containment")>=0 AND mvfind(risk_signals,"egress_block")>=0, "Quarantined",
+    mvfind(risk_signals,"containment")>=0, "Partially Contained",
+    true(), "Not Contained"
+)
+| table first_seen last_seen environment service namespace pod package episode_type containment event_count risk_signals dest_ips file_paths
