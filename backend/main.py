@@ -4,6 +4,7 @@ from routes.splunk_logs_routes import router as splunk_logs_router
 from routes.splunk_analysis_routes import router as splunk_analysis_router
 from routes.splunk_attack_flow_routes import router as splunk_attack_flow_router
 from routes.splunk_story_routes import router as splunk_story_router
+from routes.supply_chain_routes import router as supply_chain_router
 
 app = FastAPI(title="CivicShield AI Backend")
 
@@ -30,3 +31,4 @@ app.include_router(splunk_logs_router)
 app.include_router(splunk_analysis_router)
 app.include_router(splunk_attack_flow_router)
 app.include_router(splunk_story_router)
+app.include_router(supply_chain_router)
