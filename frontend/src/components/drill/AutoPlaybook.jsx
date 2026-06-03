@@ -1,15 +1,15 @@
 import { useState } from "react";
 import { runResponseAction } from "../../api/splunkApi";
 
-function AutoPlaybook({ steps = [], episode }) {
+function AutoPlaybook({ steps = [], episode, onActionComplete }) {
   const [runningActionId, setRunningActionId] = useState("");
   const [actionResults, setActionResults] = useState({});
 
   if (!steps.length) {
     return (
-      <section className="drill-side-panel">
+      <section className="side-panel">
         <p className="eyebrow">Auto Playbook</p>
-        <h2>No playbook</h2>
+        <h2>No actions</h2>
       </section>
     );
   }
@@ -18,28 +18,28 @@ function AutoPlaybook({ steps = [], episode }) {
     try {
       setRunningActionId(step.id);
 
-      const payload = {
+      const result = await runResponseAction(step.api, {
         pod: episode?.pod || step.target,
         target: step.target,
         namespace: step.namespace || episode?.namespace,
         package: episode?.package,
         reason: episode?.episode_title,
-      };
-
-      const result = await runResponseAction(step.api, payload);
+      });
 
       setActionResults((current) => ({
         ...current,
         [step.id]: result,
       }));
+
+      if (onActionComplete) {
+        await onActionComplete();
+      }
     } catch (error) {
       setActionResults((current) => ({
         ...current,
         [step.id]: {
           status: "failed",
-          details: {
-            error: error.message,
-          },
+          details: { error: error.message },
         },
       }));
     } finally {
@@ -48,49 +48,35 @@ function AutoPlaybook({ steps = [], episode }) {
   }
 
   return (
-    <section className="drill-side-panel">
+    <section className="side-panel">
       <p className="eyebrow">Auto Playbook</p>
-      <h2>Containment actions</h2>
+      <h2>Response Actions</h2>
 
-      <div className="auto-playbook-list">
-        {steps.slice(0, 5).map((step) => {
+      <div className="playbook-list">
+        {steps.map((step) => {
           const result = actionResults[step.id];
           const isRunning = runningActionId === step.id;
 
           return (
-            <article
-              key={step.id}
-              className={result ? "playbook-action executed" : "playbook-action"}
-            >
-              <span>{step.priority}</span>
-
+            <article key={step.id} className={result ? "action-card done" : "action-card"}>
               <div>
+                <span>{String(step.priority).padStart(2, "0")}</span>
                 <strong>{step.action}</strong>
                 <p>{step.target}</p>
-
-                <button
-                  className="run-action-button"
-                  onClick={() => handleRunAction(step)}
-                  disabled={isRunning}
-                >
-                  {isRunning
-                    ? "Running..."
-                    : result
-                      ? result.status
-                      : "Run action"}
-                </button>
-
-                {result && (
-                  <div className="action-result">
-                    <small>{result.action_type}</small>
-                    <code>
-                      {result.details?.simulated_command ||
-                        result.details?.simulated_action ||
-                        result.details?.production_action}
-                    </code>
-                  </div>
-                )}
               </div>
+
+              <button onClick={() => handleRunAction(step)} disabled={isRunning}>
+                {isRunning ? "Running" : result ? "Done" : "Run"}
+              </button>
+
+              {result && (
+                <code>
+                  {result.status}:{" "}
+                  {result.details?.simulated_command ||
+                    result.details?.simulated_action ||
+                    result.details?.production_action}
+                </code>
+              )}
             </article>
           );
         })}
