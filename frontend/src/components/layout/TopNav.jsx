@@ -2,17 +2,17 @@ function TopNav({ activeTab, onTabChange }) {
   const tabs = [
     { id: "dashboard", label: "Command Center" },
     { id: "attack-flow", label: "Attack Movie" },
-    { id: "evidence", label: "Evidence" },
+    { id: "evidence", label: "Evidence / Audit" },
   ];
 
   return (
     <header className="top-nav">
       <div className="brand-area">
-        <div className="brand-logo">C</div>
+        <div className="brand-mark">CS</div>
 
         <div>
           <h1>CivicShield AI</h1>
-          <p>Autonomous Incident Drill Agent</p>
+          <p>Supply Chain Incident Response Agent</p>
         </div>
       </div>
 
@@ -30,7 +30,7 @@ function TopNav({ activeTab, onTabChange }) {
 
       <div className="connection-pill">
         <span />
-        Splunk Live
+        Splunk Connected
       </div>
     </header>
   );
