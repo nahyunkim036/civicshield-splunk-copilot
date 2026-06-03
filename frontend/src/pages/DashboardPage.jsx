@@ -1,115 +1,134 @@
-import {
-  Activity,
-  Database,
-  ShieldAlert,
-  Target,
-} from "lucide-react";
+function getPrimaryIp(logs) {
+  return logs.find((log) => log.src_ip)?.src_ip || "Unknown";
+}
 
-import MetricCard from "../components/dashboard/MetricCard";
-import RiskGauge from "../components/dashboard/RiskGauge";
-import StatusDonutChart from "../components/dashboard/StatusDonutChart";
-import EventTimelineChart from "../components/dashboard/EventTimelineChart";
-import EventTypeBarChart from "../components/dashboard/EventTypeBarChart";
-import IncidentBrief from "../components/dashboard/IncidentBrief";
+function getBlockedCount(logs) {
+  return logs.filter((log) => log.status === "blocked").length;
+}
 
-function DashboardPage({ analysis, attackFlow, logs, onShowDetails, onTabChange }) {
-  if (!analysis) return null;
+function getFailedLoginCount(logs) {
+  return logs.filter(
+    (log) => log.event_type === "login" && log.status === "failed"
+  ).length;
+}
 
-  const threatPersona = analysis.threat_persona || {};
-  const sourceIp = logs.find((log) => log.src_ip)?.src_ip || "Unknown";
-  const blockedCount = logs.filter((log) => log.status === "blocked").length;
+function DashboardPage({ analysis, attackFlow, story, logs, onTabChange }) {
+  const primaryIp = getPrimaryIp(logs);
+  const blockedCount = getBlockedCount(logs);
+  const failedLoginCount = getFailedLoginCount(logs);
+
+  const incidentTitle =
+    story?.story_title || analysis?.incident_type || "Incident Drill";
+
+  const outcome = story?.outcome || "Review";
+  const stageCount = story?.timeline_count || attackFlow?.node_count || 0;
 
   return (
-    <div className="dashboard-bi-layout">
-      <section className="dashboard-hero">
+    <section className="command-center">
+      <div className="command-hero">
         <div>
-          <p className="section-label">Security BI Overview</p>
-          <h1>CivicShield Command Center</h1>
+          <p className="eyebrow">Autonomous Incident Drill Agent</p>
+          <h1>{incidentTitle}</h1>
           <p>
-            Splunk evidence transformed into incident metrics, visual patterns,
-            and an interactive security story.
+            Splunk evidence converted into a replayable attack drill, control
+            simulation, and response playbook.
           </p>
         </div>
 
-        <div className="hero-scenario-card">
-          <span>Current Scenario</span>
-          <strong>Blocked Brute Force</strong>
-          <p>scenario_2</p>
-        </div>
-      </section>
+        <button
+          className="launch-button"
+          onClick={() => onTabChange("attack-flow")}
+        >
+          <span>Launch</span>
+          Attack Movie
+        </button>
+      </div>
 
-      <section className="metric-grid bi-metric-grid">
-        <MetricCard
-          label="Events"
-          value={analysis.total_events_analyzed}
-          subtext="Logs analyzed from Splunk"
-          tone="blue"
-          icon={<Database size={20} />}
-        />
+      <div className="command-grid">
+        <section className="incident-status-panel">
+          <div className="status-orbit">
+            <div className="status-core">
+              <span>{analysis?.risk_level || "Risk"}</span>
+              <strong>{outcome}</strong>
+            </div>
+          </div>
 
-        <MetricCard
-          label="Evidence"
-          value={analysis.evidence_count}
-          subtext="Signals used for detection"
-          tone="purple"
-          icon={<Target size={20} />}
-        />
+          <div className="status-copy">
+            <p className="eyebrow">Current Drill</p>
+            <h2>{stageCount} stage attack path</h2>
+            <p>
+              The agent identified a compact attack sequence from Splunk logs
+              and prepared it for replay.
+            </p>
+          </div>
+        </section>
 
-        <MetricCard
-          label="Source IP"
-          value={sourceIp}
-          subtext="Primary suspicious source"
-          tone="warning"
-          icon={<Activity size={20} />}
-        />
+        <section className="signal-strip">
+          <article>
+            <span>Source IP</span>
+            <strong>{primaryIp}</strong>
+          </article>
 
-        <MetricCard
-          label="Blocked"
-          value={blockedCount}
-          subtext="Containment events"
-          tone="success"
-          icon={<ShieldAlert size={20} />}
-        />
-      </section>
+          <article>
+            <span>Failed Logins</span>
+            <strong>{failedLoginCount}</strong>
+          </article>
 
-      <section className="bi-dashboard-grid">
-        <RiskGauge
-          riskLevel={analysis.risk_level}
-          incidentType={analysis.incident_type}
-          confidence={analysis.confidence}
-        />
+          <article>
+            <span>Blocked</span>
+            <strong>{blockedCount}</strong>
+          </article>
 
-        <IncidentBrief
-          analysis={analysis}
-          attackFlow={attackFlow}
-          onShowDetails={onShowDetails}
-          onTabChange={onTabChange}
-        />
+          <article>
+            <span>Evidence</span>
+            <strong>{logs.length}</strong>
+          </article>
+        </section>
 
-        <article className="bi-card threat-card-bi">
-          <p className="bi-label">Threat Persona</p>
-          <div className="threat-avatar">⚡</div>
-          <h2>{threatPersona.name || "Unknown"}</h2>
-          <p>{threatPersona.behavior || "No behavior classified yet."}</p>
+        <section className="mini-attack-path">
+          <div className="panel-heading">
+            <div>
+              <p className="eyebrow">Attack Path Preview</p>
+              <h2>{attackFlow?.flow_title || "Attack Flow"}</h2>
+            </div>
 
-          <button
-            className="ghost-button"
-            onClick={() =>
-              onShowDetails({
-                title: threatPersona.name || "Threat Persona",
-                body: threatPersona.intent || "No intent available.",
-              })
-            }
-          >
-            View intent
-          </button>
-        </article>
+            <button
+              className="ghost-button"
+              onClick={() => onTabChange("attack-flow")}
+            >
+              Open
+            </button>
+          </div>
 
-        <EventTimelineChart logs={logs} />
-        <StatusDonutChart logs={logs} />
-        <EventTypeBarChart logs={logs} />
-      </section>
-    </div>
+          <div className="path-rail">
+            {(attackFlow?.nodes || []).slice(0, 5).map((node, index) => (
+              <div key={node.id} className={`path-node severity-${node.severity}`}>
+                <span>{String(index + 1).padStart(2, "0")}</span>
+                <strong>{node.label}</strong>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="compact-playbook">
+          <div className="panel-heading">
+            <div>
+              <p className="eyebrow">Auto Playbook</p>
+              <h2>Next moves</h2>
+            </div>
+          </div>
+
+          <div className="playbook-preview">
+            {(story?.response_coach || []).slice(0, 4).map((step) => (
+              <div key={step.priority}>
+                <span>{step.priority}</span>
+                <strong>{step.action}</strong>
+              </div>
+            ))}
+          </div>
+        </section>
+      </div>
+    </section>
   );
 }
 
