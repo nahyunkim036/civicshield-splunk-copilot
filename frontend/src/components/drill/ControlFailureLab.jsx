@@ -4,31 +4,22 @@ function ControlFailureLab({ scenarios = [] }) {
   const [selectedId, setSelectedId] = useState(scenarios[0]?.id || "");
 
   if (!scenarios.length) {
-    return (
-      <section className="drill-side-panel">
-        <p className="eyebrow">Control Failure Lab</p>
-        <h2>No simulations</h2>
-      </section>
-    );
+    return null;
   }
 
   const selectedScenario =
     scenarios.find((scenario) => scenario.id === selectedId) || scenarios[0];
 
   return (
-    <section className="drill-side-panel">
+    <section className="side-panel">
       <p className="eyebrow">Control Failure Lab</p>
-      <h2>Break one defense</h2>
+      <h2>Failure Simulation</h2>
 
-      <div className="failure-options">
-        {scenarios.slice(0, 4).map((scenario) => (
+      <div className="failure-buttons">
+        {scenarios.map((scenario) => (
           <button
             key={scenario.id}
-            className={
-              selectedScenario.id === scenario.id
-                ? "failure-option active"
-                : "failure-option"
-            }
+            className={selectedScenario.id === scenario.id ? "active" : ""}
             onClick={() => setSelectedId(scenario.id)}
           >
             {scenario.question}
@@ -36,14 +27,9 @@ function ControlFailureLab({ scenarios = [] }) {
         ))}
       </div>
 
-      <div className="failure-result">
-        <div className="risk-chip">
-          <span />
-          Risk path changes
-        </div>
-
-        <h3>{selectedScenario.likely_outcome}</h3>
-
+      <div className="failure-output">
+        <span>Projected impact</span>
+        <strong>{selectedScenario.likely_outcome}</strong>
         <p>{selectedScenario.recommended_control}</p>
       </div>
     </section>
