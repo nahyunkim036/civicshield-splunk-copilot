@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: checkout
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: payment-api-7f9d
+  namespace: checkout
+  labels:
+    app: payment-api-7f9d
+    service: payment-api
+    package: event-stream-lite
+    civicshield.ai/demo: "true"
+spec:
+  containers:
+    - name: payment-api
+      image: nginx:alpine
+      ports:
+        - containerPort: 80
