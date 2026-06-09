@@ -1,123 +1,202 @@
-function DashboardPage({ episodeData, auditData, onTabChange }) {
-  const episode = episodeData?.episode;
-  const attackMovie = episodeData?.attack_movie;
-  const architectureMap = episodeData?.architecture_map;
+function InfoRow({ label, value, helper }) {
+  return (
+    <div className="info-row">
+      <div>
+        <span className="info-label">{label}</span>
+        {helper && <p className="info-helper">{helper}</p>}
+      </div>
+      <strong>{value || "unknown"}</strong>
+    </div>
+  );
+}
 
-  if (!episode) return null;
+function SignalPill({ signal }) {
+  return <span className="signal-pill">{signal}</span>;
+}
+
+function DashboardPage({
+  episodeData,
+  episode,
+  aiExplanation,
+  auditData,
+  onTabChange,
+}) {
+  const source = episodeData?.source || "splunk";
+  const index = episodeData?.index || "civic_supply_chain_logs";
+  const eventCount = episodeData?.total_events_analyzed || episode?.event_count || 0;
+
+  const riskLevel = episode?.risk_level || "Unknown";
+  const containment = episode?.containment || "Unknown";
 
   return (
-    <section className="command-center">
-      <div className="hero-row">
-        <div>
-          <p className="eyebrow">Attack-to-Quarantine Pipeline</p>
-          <h1>{episode.episode_title}</h1>
-          <p>
-            Splunk correlated container telemetry into a supply chain episode.
-            The response agent is ready to isolate the affected workload.
+    <div className="page-stack">
+      <section className="case-hero">
+        <div className="case-hero-main">
+          <p className="eyebrow">Case Overview</p>
+          <h2>{episode?.episode_title || "Supply Chain Incident Case"}</h2>
+          <p className="case-summary">
+            {aiExplanation?.case_summary ||
+              "CivicShield analyzed Splunk evidence and built an incident case."}
           </p>
+
+          <div className="case-actions">
+            <button
+              className="primary-action"
+              type="button"
+              onClick={() => onTabChange("timeline")}
+            >
+              Review Evidence Timeline
+            </button>
+            <button
+              className="secondary-action"
+              type="button"
+              onClick={() => onTabChange("containment")}
+            >
+              Open Containment Actions
+            </button>
+          </div>
         </div>
 
-        <button
-          className="launch-button"
-          onClick={() => onTabChange("attack-flow")}
-        >
-          Launch Attack Movie
-        </button>
-      </div>
-
-      <section className="status-grid">
-        <article>
-          <span>Risk</span>
-          <strong>{episode.risk_level}</strong>
-        </article>
-
-        <article>
-          <span>Score</span>
-          <strong>{episode.risk_score}</strong>
-        </article>
-
-        <article>
-          <span>Containment</span>
-          <strong>{episode.containment}</strong>
-        </article>
-
-        <article>
-          <span>Audit Actions</span>
-          <strong>{auditData?.count || 0}</strong>
-        </article>
-      </section>
-
-      <section className="core-layout">
-        <div className="architecture-panel">
-          <div className="panel-heading">
-            <div>
-              <p className="eyebrow">Architecture Map</p>
-              <h2>Impacted Runtime Path</h2>
-            </div>
+        <aside className="case-status-panel">
+          <div className="status-block">
+            <span>Risk Level</span>
+            <strong className={`risk-text risk-${riskLevel.toLowerCase()}`}>
+              {riskLevel}
+            </strong>
           </div>
 
-          <div className="architecture-map">
-            {(architectureMap?.nodes || []).map((node) => (
-              <div key={node.id} className={`arch-node status-${node.status}`}>
-                <span>{node.type}</span>
-                <strong>{node.label}</strong>
-              </div>
+          <div className="status-block">
+            <span>Risk Score</span>
+            <strong>{episode?.risk_score ?? "--"}/100</strong>
+          </div>
+
+          <div className="status-block">
+            <span>Containment</span>
+            <strong>{containment}</strong>
+          </div>
+
+          <div className="status-block">
+            <span>Audit Actions</span>
+            <strong>{auditData?.count || 0}</strong>
+          </div>
+        </aside>
+      </section>
+
+      <section className="content-grid two-column">
+        <article className="panel">
+          <div className="section-heading">
+            <p className="eyebrow">Affected Asset</p>
+            <h3>What system is involved?</h3>
+          </div>
+
+          <div className="info-list">
+            <InfoRow
+              label="Pod"
+              value={episode?.pod}
+              helper="A Pod is the smallest Kubernetes unit running an application container."
+            />
+            <InfoRow
+              label="Namespace"
+              value={episode?.namespace}
+              helper="A Namespace groups Kubernetes resources into a logical environment."
+            />
+            <InfoRow
+              label="Service"
+              value={episode?.service}
+              helper="The application service affected by the suspicious package behavior."
+            />
+            <InfoRow
+              label="Image"
+              value={episode?.image}
+              helper="The container image running inside the affected Pod."
+            />
+          </div>
+        </article>
+
+        <article className="panel">
+          <div className="section-heading">
+            <p className="eyebrow">Suspicious Package</p>
+            <h3>What triggered the case?</h3>
+          </div>
+
+          <div className="package-card">
+            <span className="package-name">{episode?.package || "unknown"}</span>
+            <p>
+              A package is an external dependency or library used by the
+              application. In this case, Splunk evidence shows suspicious
+              runtime behavior connected to this package.
+            </p>
+          </div>
+
+          <div className="signal-list">
+            {(episode?.risk_signals || []).map((signal) => (
+              <SignalPill key={signal} signal={signal} />
             ))}
           </div>
-        </div>
-
-        <div className="episode-panel">
-          <p className="eyebrow">Episode Target</p>
-
-          <div className="target-list">
-            <div>
-              <span>Package</span>
-              <strong>{episode.package}</strong>
-            </div>
-
-            <div>
-              <span>Pod</span>
-              <strong>{episode.pod}</strong>
-            </div>
-
-            <div>
-              <span>Namespace</span>
-              <strong>{episode.namespace}</strong>
-            </div>
-
-            <div>
-              <span>Events</span>
-              <strong>{episode.event_count}</strong>
-            </div>
-          </div>
-        </div>
+        </article>
       </section>
 
-      <section className="path-preview-panel">
-        <div className="panel-heading">
-          <div>
-            <p className="eyebrow">Attack Path</p>
-            <h2>{attackMovie?.node_count || 0} correlated stages</h2>
+      <section className="content-grid two-column">
+        <article className="panel ai-panel">
+          <div className="section-heading">
+            <p className="eyebrow">AI Explanation</p>
+            <h3>Why this case matters</h3>
           </div>
 
-          <button
-            className="ghost-button"
-            onClick={() => onTabChange("attack-flow")}
-          >
-            Replay
-          </button>
-        </div>
+          <div className="explanation-block">
+            <h4>Reasoning</h4>
+            <p>
+              {aiExplanation?.why_it_matters ||
+                "CivicShield correlated multiple suspicious events from Splunk logs."}
+            </p>
+          </div>
 
-        <div className="path-preview">
-          {(attackMovie?.nodes || []).map((node) => (
-            <div key={node.id} className={`path-preview-node severity-${node.severity}`}>
-              <span>{String(node.step).padStart(2, "0")}</span>
-              <strong>{node.label}</strong>
-            </div>
-          ))}
-        </div>
+          <div className="explanation-block">
+            <h4>Recommended Response</h4>
+            <p>
+              {aiExplanation?.recommended_response ||
+                "Review the evidence timeline and run containment actions if needed."}
+            </p>
+          </div>
+
+          <div className="confidence-row">
+            <span>Confidence</span>
+            <strong>{aiExplanation?.confidence || "Medium"}</strong>
+          </div>
+        </article>
+
+        <article className="panel">
+          <div className="section-heading">
+            <p className="eyebrow">Splunk Source</p>
+            <h3>Where the evidence came from</h3>
+          </div>
+
+          <div className="source-card">
+            <InfoRow
+              label="Source"
+              value={source}
+              helper="Splunk is used as the evidence source and search layer."
+            />
+            <InfoRow
+              label="Index"
+              value={index}
+              helper="The index storing supply chain security telemetry."
+            />
+            <InfoRow
+              label="Events Analyzed"
+              value={eventCount}
+              helper="Events correlated into this incident case."
+            />
+          </div>
+
+          <div className="small-note">
+            Demo data is synthetic, but the pipeline is real: the backend reads
+            the Splunk index, builds an incident case, and connects the result
+            to Kubernetes containment actions.
+          </div>
+        </article>
       </section>
-    </section>
+    </div>
   );
 }
 
