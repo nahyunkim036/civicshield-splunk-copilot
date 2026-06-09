@@ -1,68 +1,175 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { runResponseAction } from "../../api/splunkApi";
 
-function ActionCard({ action, episode, onActionComplete }) {
-  const [result, setResult] = useState(null);
-  const [running, setRunning] = useState(false);
-  const [error, setError] = useState("");
+function ActionButton({ action, isSelected, onClick }) {
+  const isRealAction = action.execution_type === "real_kubernetes_action";
+
+  return (
+    <button
+      type="button"
+      className={`containment-action-button ${isSelected ? "selected" : ""} ${
+        isRealAction ? "real" : "simulated"
+      }`}
+      onClick={onClick}
+    >
+      <span className="action-number">{String(action.priority).padStart(2, "0")}</span>
+
+      <span className="action-button-copy">
+        <strong>{action.action}</strong>
+        <small>
+          {isRealAction ? "Kubernetes execution" : "Recommended follow-up"}
+        </small>
+      </span>
+
+      <span className="action-dot" />
+    </button>
+  );
+}
+
+function ResultBlock({ result }) {
+  if (!result) return null;
+
+  return (
+    <section className="containment-result">
+      <div className="result-topline">
+        <div>
+          <span>Status</span>
+          <strong>{result.status}</strong>
+        </div>
+        <div>
+          <span>Mode</span>
+          <strong>{result.mode}</strong>
+        </div>
+      </div>
+
+      {result.details?.kubectl_result?.command && (
+        <div className="command-box">
+          <span>Executed Command</span>
+          <code>{result.details.kubectl_result.command}</code>
+        </div>
+      )}
+
+      {result.details?.simulated_command && (
+        <div className="command-box">
+          <span>Simulated Command</span>
+          <code>{result.details.simulated_command}</code>
+        </div>
+      )}
+
+      {result.details?.network_policy_yaml && (
+        <div className="command-box">
+          <span>Generated NetworkPolicy</span>
+          <pre>{result.details.network_policy_yaml}</pre>
+        </div>
+      )}
+
+      {result.details?.recommended_actions && (
+        <div className="recommendation-list">
+          <span>Recommended Actions</span>
+          {result.details.recommended_actions.map((item) => (
+            <p key={item}>{item}</p>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function ActionDetailPanel({
+  action,
+  episode,
+  result,
+  running,
+  error,
+  onRun,
+}) {
+  if (!action) {
+    return (
+      <aside className="containment-detail-panel empty">
+        <p className="eyebrow">Containment Detail</p>
+        <h3>Select an action</h3>
+        <p>
+          Choose a containment action to see what it does, why it matters, and
+          whether it runs as a real Kubernetes action or simulated follow-up.
+        </p>
+      </aside>
+    );
+  }
 
   const isRealAction = action.execution_type === "real_kubernetes_action";
 
-  async function handleRun() {
-    setRunning(true);
-    setError("");
-
-    try {
-      const response = await runResponseAction(action.api, {
-        pod: episode?.pod || action.target,
-        target: action.target,
-        namespace: action.namespace || episode?.namespace,
-        package: episode?.package,
-        reason: episode?.episode_title,
-      });
-
-      setResult(response);
-
-      if (onActionComplete) {
-        await onActionComplete();
-      }
-    } catch (requestError) {
-      setError(requestError.message || "Action failed.");
-    } finally {
-      setRunning(false);
-    }
-  }
-
   return (
-    <article className={`action-card ${isRealAction ? "real" : "simulated"}`}>
-      <div className="action-card-header">
+    <aside className={`containment-detail-panel active ${isRealAction ? "real" : "simulated"}`}>
+      <div className="containment-detail-header">
         <div>
-          <span className="action-priority">Priority {action.priority}</span>
+          <p className="eyebrow">
+            {isRealAction ? "Primary Kubernetes Action" : "Recommended Follow-up"}
+          </p>
           <h3>{action.action}</h3>
         </div>
 
-        <span className={`action-type ${isRealAction ? "real" : "simulated"}`}>
-          {isRealAction ? "Real Kubernetes Action" : "Simulated Follow-up"}
+        <span className={`execution-badge ${isRealAction ? "real" : "simulated"}`}>
+          {isRealAction ? "Real" : "Simulated"}
         </span>
       </div>
 
-      <p className="action-why">{action.why}</p>
+      <p className="containment-detail-copy">{action.why}</p>
 
-      <div className="action-meta">
+      <div className="containment-target-grid">
         <div>
           <span>Target</span>
-          <strong>{action.target || "unknown"}</strong>
+          <strong>{action.target || episode?.pod || "unknown"}</strong>
         </div>
         <div>
           <span>Namespace</span>
-          <strong>{action.namespace || "default"}</strong>
+          <strong>{action.namespace || episode?.namespace || "default"}</strong>
+        </div>
+        <div>
+          <span>Case</span>
+          <strong>{episode?.episode_title || "Supply Chain Incident"}</strong>
+        </div>
+        <div>
+          <span>Action Type</span>
+          <strong>
+            {isRealAction ? "Kubernetes command" : "Workflow recommendation"}
+          </strong>
         </div>
       </div>
 
+      <div className="containment-explainer">
+        {action.id === "quarantine_pod" && (
+          <p>
+            This applies <code>civicshield.ai/quarantine=true</code> to the
+            affected Pod. The label marks the Pod as a containment target.
+          </p>
+        )}
+
+        {action.id === "apply_network_policy" && (
+          <p>
+            This generates and applies a deny-egress Kubernetes NetworkPolicy
+            targeting Pods with the quarantine label.
+          </p>
+        )}
+
+        {action.id === "rotate_service_account" && (
+          <p>
+            This represents the follow-up step of rotating exposed Kubernetes
+            credentials after token access is observed.
+          </p>
+        )}
+
+        {action.id === "open_dependency_review" && (
+          <p>
+            This represents a dependency investigation workflow for the
+            suspicious open-source package that triggered the incident.
+          </p>
+        )}
+      </div>
+
       <button
-        className="run-action-button"
+        className="run-action-button containment-run"
         type="button"
-        onClick={handleRun}
+        onClick={onRun}
         disabled={running}
       >
         {running ? "Running..." : result ? "Run Again" : "Run Action"}
@@ -70,99 +177,112 @@ function ActionCard({ action, episode, onActionComplete }) {
 
       {error && <p className="action-error">{error}</p>}
 
-      {result && (
-        <div className="action-result">
-          <div className="result-row">
-            <span>Status</span>
-            <strong>{result.status}</strong>
-          </div>
-          <div className="result-row">
-            <span>Mode</span>
-            <strong>{result.mode}</strong>
-          </div>
-
-          {result.details?.kubectl_result?.command && (
-            <div className="command-box">
-              <span>Command</span>
-              <code>{result.details.kubectl_result.command}</code>
-            </div>
-          )}
-
-          {result.details?.simulated_command && (
-            <div className="command-box">
-              <span>Simulated Command</span>
-              <code>{result.details.simulated_command}</code>
-            </div>
-          )}
-
-          {result.details?.network_policy_yaml && (
-            <div className="command-box">
-              <span>Generated NetworkPolicy</span>
-              <pre>{result.details.network_policy_yaml}</pre>
-            </div>
-          )}
-        </div>
-      )}
-    </article>
+      <ResultBlock result={result} />
+    </aside>
   );
 }
 
 function ContainmentActions({ episode, playbook, onActionComplete }) {
+  const [selectedActionId, setSelectedActionId] = useState(
+    playbook?.[0]?.id || ""
+  );
+  const [resultsByAction, setResultsByAction] = useState({});
+  const [runningActionId, setRunningActionId] = useState("");
+  const [errorsByAction, setErrorsByAction] = useState({});
+
+  const selectedAction = useMemo(() => {
+    return playbook.find((action) => action.id === selectedActionId) || playbook[0];
+  }, [playbook, selectedActionId]);
+
   const primaryActions = playbook.filter(
     (action) => action.category === "primary"
   );
+
   const followUpActions = playbook.filter(
     (action) => action.category === "follow_up"
   );
 
+  async function handleRunSelectedAction() {
+    if (!selectedAction) return;
+
+    setRunningActionId(selectedAction.id);
+    setErrorsByAction((current) => ({
+      ...current,
+      [selectedAction.id]: "",
+    }));
+
+    try {
+      const response = await runResponseAction(selectedAction.api, {
+        pod: episode?.pod || selectedAction.target,
+        target: selectedAction.target,
+        namespace: selectedAction.namespace || episode?.namespace,
+        package: episode?.package,
+        reason: episode?.episode_title,
+      });
+
+      setResultsByAction((current) => ({
+        ...current,
+        [selectedAction.id]: response,
+      }));
+
+      if (onActionComplete) {
+        await onActionComplete();
+      }
+    } catch (requestError) {
+      setErrorsByAction((current) => ({
+        ...current,
+        [selectedAction.id]: requestError.message || "Action failed.",
+      }));
+    } finally {
+      setRunningActionId("");
+    }
+  }
+
   return (
-    <div className="containment-actions">
-      <section className="action-section">
-        <div className="section-heading">
-          <p className="eyebrow">Primary Containment Actions</p>
-          <h2>Kubernetes actions verified in this prototype</h2>
-          <p>
-            These actions are connected to the FastAPI backend. In Kubernetes
-            mode, the backend executes kubectl commands against the local
-            Docker Desktop Kubernetes cluster.
-          </p>
+    <section className="containment-command-center">
+      <div className="containment-action-rail">
+        <div className="action-group">
+          <p className="eyebrow">Primary Actions</p>
+          <h3>Kubernetes containment</h3>
+
+          <div className="action-button-stack">
+            {primaryActions.map((action) => (
+              <ActionButton
+                key={action.id}
+                action={action}
+                isSelected={selectedAction?.id === action.id}
+                onClick={() => setSelectedActionId(action.id)}
+              />
+            ))}
+          </div>
         </div>
 
-        <div className="action-grid">
-          {primaryActions.map((action) => (
-            <ActionCard
-              key={action.id}
-              action={action}
-              episode={episode}
-              onActionComplete={onActionComplete}
-            />
-          ))}
-        </div>
-      </section>
+        <div className="action-group">
+          <p className="eyebrow">Follow-up Actions</p>
+          <h3>Investigation workflow</h3>
 
-      <section className="action-section">
-        <div className="section-heading">
-          <p className="eyebrow">Recommended Follow-up Actions</p>
-          <h2>Post-containment investigation steps</h2>
-          <p>
-            These are included to show the complete response workflow. They are
-            simulated in this prototype but represent real actions a security
-            or platform team would take after containment.
-          </p>
+          <div className="action-button-stack">
+            {followUpActions.map((action) => (
+              <ActionButton
+                key={action.id}
+                action={action}
+                isSelected={selectedAction?.id === action.id}
+                onClick={() => setSelectedActionId(action.id)}
+              />
+            ))}
+          </div>
         </div>
+      </div>
 
-        <div className="action-grid">
-          {followUpActions.map((action) => (
-            <ActionCard
-              key={action.id}
-              action={action}
-              episode={episode}
-              onActionComplete={onActionComplete}
-            />
-          ))}
-        </div>
-      </section>
-    </div>
+      <ActionDetailPanel
+        action={selectedAction}
+        episode={episode}
+        result={resultsByAction[selectedAction?.id]}
+        running={runningActionId === selectedAction?.id}
+        error={errorsByAction[selectedAction?.id]}
+        onRun={handleRunSelectedAction}
+      />
+    </section>
   );
 }
 
