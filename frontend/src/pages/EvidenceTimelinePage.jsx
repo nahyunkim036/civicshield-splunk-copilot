@@ -1,36 +1,30 @@
 import { useEffect, useMemo, useState } from "react";
 
-function EvidenceStage({ stage, isActive, isCompleted, onClick }) {
+function TimelineNode({ stage, index, isActive, isCompleted, onClick }) {
   return (
     <button
       type="button"
-      className={`timeline-stage ${isActive ? "active" : ""} ${
+      className={`timeline-node ${isActive ? "active" : ""} ${
         isCompleted ? "completed" : ""
       } severity-${stage.severity || "medium"}`}
       onClick={onClick}
     >
-      <span className="stage-step">{String(stage.step).padStart(2, "0")}</span>
-
-      <span className="stage-body">
-        <span className="stage-time">{stage.time || "--"}</span>
-        <strong>{stage.stage}</strong>
-        <small>{stage.headline}</small>
-      </span>
-
-      <span className="stage-status">{stage.severity}</span>
+      <span className="timeline-node-index">{String(index + 1).padStart(2, "0")}</span>
+      <strong>{stage.stage}</strong>
+      <small>{stage.time || "--"}</small>
     </button>
   );
 }
 
-function EvidenceDetail({ stage }) {
+function StageDetailPanel({ stage, onClose }) {
   if (!stage) {
     return (
-      <aside className="evidence-detail empty">
+      <aside className="stage-detail-panel empty">
         <p className="eyebrow">Evidence Detail</p>
-        <h3>Select a timeline stage</h3>
+        <h3>Select a stage</h3>
         <p>
-          Click any stage in the timeline to inspect the Splunk evidence,
-          affected asset, and why this event matters.
+          Click a timeline stage to inspect the Splunk evidence and why that event
+          matters.
         </p>
       </aside>
     );
@@ -39,25 +33,31 @@ function EvidenceDetail({ stage }) {
   const evidence = stage.evidence || {};
 
   return (
-    <aside className="evidence-detail">
-      <div className="detail-header">
+    <aside className="stage-detail-panel active">
+      <div className="stage-detail-header">
         <div>
-          <p className="eyebrow">Selected Evidence</p>
+          <p className="eyebrow">Splunk Evidence</p>
           <h3>{stage.stage}</h3>
         </div>
-        <span className={`detail-severity severity-${stage.severity}`}>
+
+        <button type="button" onClick={onClose} aria-label="Close evidence detail">
+          ×
+        </button>
+      </div>
+
+      <div className="stage-headline-block">
+        <span className={`stage-severity-badge severity-${stage.severity}`}>
           {stage.severity}
         </span>
+        <strong>{stage.headline}</strong>
       </div>
 
-      <p className="detail-headline">{stage.headline}</p>
-
-      <div className="detail-section">
+      <section className="stage-detail-section">
         <h4>Why it matters</h4>
         <p>{stage.explanation || stage.description}</p>
-      </div>
+      </section>
 
-      <div className="evidence-grid">
+      <section className="stage-field-grid">
         <div>
           <span>Timestamp</span>
           <strong>{evidence.timestamp || "--"}</strong>
@@ -69,6 +69,10 @@ function EvidenceDetail({ stage }) {
         <div>
           <span>Risk Signal</span>
           <strong>{stage.risk_signal || "--"}</strong>
+        </div>
+        <div>
+          <span>Status</span>
+          <strong>{evidence.status || stage.status || "--"}</strong>
         </div>
         <div>
           <span>Pod</span>
@@ -86,24 +90,13 @@ function EvidenceDetail({ stage }) {
           <span>Destination IP</span>
           <strong>{evidence.dest_ip || "--"}</strong>
         </div>
-        <div>
-          <span>Action</span>
-          <strong>{evidence.action || "--"}</strong>
-        </div>
-      </div>
+      </section>
 
       {evidence.file_path && (
-        <div className="code-evidence">
+        <section className="stage-code-block">
           <span>File Path</span>
           <code>{evidence.file_path}</code>
-        </div>
-      )}
-
-      {evidence.raw_description && (
-        <div className="detail-section">
-          <h4>Raw Splunk Description</h4>
-          <p>{evidence.raw_description}</p>
-        </div>
+        </section>
       )}
     </aside>
   );
@@ -116,6 +109,7 @@ function EvidenceTimelinePage({ episode, evidenceTimeline, onEvidenceSelect }) {
   );
 
   const [activeIndex, setActiveIndex] = useState(0);
+  const [selectedStage, setSelectedStage] = useState(null);
   const [isPlaying, setIsPlaying] = useState(true);
 
   const activeStage = stages[activeIndex];
@@ -131,13 +125,20 @@ function EvidenceTimelinePage({ episode, evidenceTimeline, onEvidenceSelect }) {
 
         return current + 1;
       });
-    }, 2200);
+    }, 2100);
 
     return () => window.clearInterval(timer);
   }, [isPlaying, stages.length]);
 
+  useEffect(() => {
+    if (!selectedStage && activeStage) {
+      setSelectedStage(activeStage);
+    }
+  }, [activeStage, selectedStage]);
+
   function handleStageClick(stage, index) {
     setActiveIndex(index);
+    setSelectedStage(stage);
     setIsPlaying(false);
 
     if (onEvidenceSelect) {
@@ -152,23 +153,32 @@ function EvidenceTimelinePage({ episode, evidenceTimeline, onEvidenceSelect }) {
 
   function handleReplay() {
     setActiveIndex(0);
+    setSelectedStage(stages[0] || null);
     setIsPlaying(true);
+  }
+
+  function handleTogglePlay() {
+    setIsPlaying((value) => !value);
   }
 
   function handleNext() {
     setIsPlaying(false);
-    setActiveIndex((current) => Math.min(current + 1, stages.length - 1));
+    setActiveIndex((current) => {
+      const nextIndex = Math.min(current + 1, stages.length - 1);
+      setSelectedStage(stages[nextIndex]);
+      return nextIndex;
+    });
   }
 
   if (!stages.length) {
     return (
-      <div className="page-stack">
-        <section className="panel">
+      <div className="timeline-screen">
+        <section className="timeline-empty-state">
           <p className="eyebrow">Evidence Timeline</p>
-          <h2>No evidence timeline available.</h2>
+          <h2>No evidence timeline available</h2>
           <p>
-            CivicShield could not find timeline stages from the current Splunk
-            response.
+            CivicShield could not reconstruct timeline stages from the current
+            Splunk response.
           </p>
         </section>
       </div>
@@ -176,71 +186,79 @@ function EvidenceTimelinePage({ episode, evidenceTimeline, onEvidenceSelect }) {
   }
 
   return (
-    <div className="page-stack">
-      <section className="timeline-hero">
-        <div>
+    <div className="timeline-screen">
+      <section className="timeline-main-stage">
+        <div className="timeline-copy">
           <p className="eyebrow">Evidence Timeline</p>
-          <h2>{evidenceTimeline?.title || "Splunk Evidence Replay"}</h2>
+          <h2>Replay the Splunk evidence sequence</h2>
           <p>
-            CivicShield reconstructs the incident from Splunk events so the
-            operator can see how the suspicious package moved from runtime
-            activity to containment.
+            Each stage is built from Splunk event fields such as event_type,
+            severity, file_path, process, and destination IP.
           </p>
         </div>
 
-        <div className="timeline-controls">
+        <div className="timeline-command-bar">
           <button type="button" onClick={handleReplay}>
             Replay
           </button>
-          <button type="button" onClick={() => setIsPlaying((value) => !value)}>
+          <button type="button" onClick={handleTogglePlay}>
             {isPlaying ? "Pause" : "Play"}
           </button>
           <button type="button" onClick={handleNext}>
-            Next Stage
+            Next
           </button>
         </div>
       </section>
 
-      <section className="timeline-layout">
-        <article className="timeline-panel">
-          <div className="timeline-progress">
+      <section className="timeline-visual-layout">
+        <article className="timeline-visual-card">
+          <div className="timeline-current-stage">
             <span>
-              Stage {activeIndex + 1} of {stages.length}
+              Stage {activeIndex + 1} / {stages.length}
             </span>
-            <div className="progress-track">
-              <div
-                className="progress-fill"
-                style={{
-                  width: `${((activeIndex + 1) / stages.length) * 100}%`,
-                }}
-              />
-            </div>
+            <strong>{activeStage?.stage}</strong>
+            <p>{activeStage?.headline}</p>
           </div>
 
-          <div className="timeline-list">
+          <div className="timeline-progress-rail">
+            <div
+              className="timeline-progress-value"
+              style={{
+                width: `${((activeIndex + 1) / stages.length) * 100}%`,
+              }}
+            />
+          </div>
+
+          <div className="timeline-node-track">
             {stages.map((stage, index) => (
-              <EvidenceStage
-                key={stage.id}
-                stage={stage}
-                isActive={index === activeIndex}
-                isCompleted={index < activeIndex}
-                onClick={() => handleStageClick(stage, index)}
-              />
+              <div className="timeline-node-wrap" key={stage.id}>
+                <TimelineNode
+                  stage={stage}
+                  index={index}
+                  isActive={index === activeIndex}
+                  isCompleted={index < activeIndex}
+                  onClick={() => handleStageClick(stage, index)}
+                />
+
+                {index < stages.length - 1 && <div className="timeline-connector" />}
+              </div>
             ))}
           </div>
         </article>
 
-        <EvidenceDetail stage={activeStage} />
+        <StageDetailPanel
+          stage={selectedStage}
+          onClose={() => setSelectedStage(null)}
+        />
       </section>
 
-      <section className="panel compact-panel">
-        <p className="eyebrow">What this timeline shows</p>
-        <h3>{episode?.episode_title || "Incident Evidence"}</h3>
+      <section className="timeline-footer-note">
+        <span>Source</span>
+        <strong>Splunk index: civic_supply_chain_logs</strong>
         <p>
-          This is not a generated animation. It is a time-ordered replay of
-          Splunk events from the <strong>civic_supply_chain_logs</strong> index.
-          Each stage is derived from an actual event field such as event_type,
-          severity, process, destination IP, and file path.
+          This is a replay of indexed evidence, not a generated animation. The
+          visual sequence is reconstructed from the incident events returned by
+          the backend.
         </p>
       </section>
     </div>
