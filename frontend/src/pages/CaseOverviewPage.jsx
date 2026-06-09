@@ -1,56 +1,39 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
-function SummaryMetric({ label, value, helper, tone, onClick }) {
+function InfoCard({ label, value, tone, onClick }) {
   return (
     <button
       type="button"
-      className={`summary-metric ${tone || ""}`}
+      className={`info-card ${tone || ""}`}
       onClick={onClick}
     >
       <span>{label}</span>
       <strong>{value || "unknown"}</strong>
-      {helper && <small>{helper}</small>}
     </button>
   );
 }
 
-function DetailPanel({ activeDetail, onClose }) {
-  if (!activeDetail) {
-    return (
-      <aside className="overview-detail-panel empty">
-        <p className="eyebrow">Details</p>
-        <h3>Select a case card</h3>
-        <p>
-          Click Risk, Pod, Package, Containment, AI Summary, or Splunk Source to
-          inspect the details behind this case.
-        </p>
-      </aside>
-    );
-  }
-
+function FlowButton({ number, title, subtitle, active, onClick }) {
   return (
-    <aside className="overview-detail-panel active">
-      <div className="detail-panel-header">
-        <div>
-          <p className="eyebrow">{activeDetail.eyebrow}</p>
-          <h3>{activeDetail.title}</h3>
-        </div>
-
-        <button type="button" onClick={onClose} aria-label="Close detail panel">
-          ×
-        </button>
+    <button
+      type="button"
+      className={`flow-button ${active ? "active" : ""}`}
+      onClick={onClick}
+    >
+      <span>{number}</span>
+      <div>
+        <strong>{title}</strong>
+        <small>{subtitle}</small>
       </div>
-
-      <div className="detail-panel-body">{activeDetail.content}</div>
-    </aside>
+    </button>
   );
 }
 
-function DetailRow({ label, value }) {
+function ModalRow({ label, value }) {
   return (
-    <div className="mini-detail-row">
+    <div className="modal-row">
       <span>{label}</span>
-      <strong>{value || "unknown"}</strong>
+      <strong>{value || "--"}</strong>
     </div>
   );
 }
@@ -59,184 +42,202 @@ function SignalPill({ signal }) {
   return <span className="signal-pill">{signal}</span>;
 }
 
+function PopModal({ modal, onClose }) {
+  if (!modal) return null;
+
+  return (
+    <div className="pop-backdrop" onClick={onClose}>
+      <section
+        className={`pop-card ${modal.tone || ""}`}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="pop-header">
+          <div>
+            <p className="eyebrow">{modal.eyebrow}</p>
+            <h2>{modal.title}</h2>
+          </div>
+
+          <button type="button" onClick={onClose}>
+            ×
+          </button>
+        </div>
+
+        <div className="pop-body">{modal.content}</div>
+      </section>
+    </div>
+  );
+}
+
+function StageMini({ stage, onClick }) {
+  return (
+    <button
+      type="button"
+      className={`stage-mini severity-${stage.severity || "medium"}`}
+      onClick={onClick}
+    >
+      <span>{String(stage.step).padStart(2, "0")}</span>
+      <strong>{stage.stage}</strong>
+      <small>{stage.headline}</small>
+    </button>
+  );
+}
+
 function CaseOverviewPage({
   episodeData,
   episode,
   aiExplanation,
   auditData,
+  evidenceTimeline,
   onTabChange,
+  onOpenDrawer,
 }) {
-  const [activeDetail, setActiveDetail] = useState(null);
+  const [modalKey, setModalKey] = useState(null);
 
-  const source = episodeData?.source || "splunk";
-  const index = episodeData?.index || "civic_supply_chain_logs";
-  const eventCount =
-    episodeData?.total_events_analyzed || episode?.event_count || 0;
+  const stages = evidenceTimeline?.stages || [];
+  const visibleStages = stages.slice(0, 6);
+  const eventCount = episodeData?.total_events_analyzed || episode?.event_count || 0;
+  const sourceIndex = episodeData?.index || "civic_supply_chain_logs";
 
-  const riskLevel = episode?.risk_level || "Unknown";
-  const containment = episode?.containment || "Unknown";
+  const modals = useMemo(
+    () => ({
+      logs: {
+        eyebrow: "Splunk Source",
+        title: "What Splunk analyzed",
+        tone: "blue",
+        content: (
+          <>
+            <p className="modal-copy">
+              Splunk stores the supply-chain security events. The backend asks
+              Splunk for the indexed events, then separates them into risk
+              signals and timeline stages.
+            </p>
 
-  const details = {
-    risk: {
-      eyebrow: "Risk",
-      title: "Why this case is risky",
-      content: (
-        <>
-          <p className="detail-copy">
-            {aiExplanation?.why_it_matters ||
-              "CivicShield correlated multiple suspicious runtime events from Splunk logs."}
-          </p>
+            <div className="modal-grid">
+              <ModalRow label="Index" value={sourceIndex} />
+              <ModalRow label="Events analyzed" value={eventCount} />
+              <ModalRow label="Source" value={episodeData?.source || "splunk"} />
+              <ModalRow label="Case" value={episode?.episode_title} />
+            </div>
+          </>
+        ),
+      },
 
-          <div className="risk-signal-group">
-            {(episode?.risk_signals || []).map((signal) => (
-              <SignalPill key={signal} signal={signal} />
-            ))}
-          </div>
+      ai: {
+        eyebrow: "AI Summary",
+        title: "Readable case explanation",
+        tone: "green",
+        content: (
+          <>
+            <p className="modal-copy large">
+              {aiExplanation?.case_summary ||
+                "CivicShield analyzed Splunk evidence and built an incident case."}
+            </p>
 
-          <div className="mini-detail-grid">
-            <DetailRow label="Risk Level" value={riskLevel} />
-            <DetailRow label="Risk Score" value={`${episode?.risk_score ?? "--"}/100`} />
-            <DetailRow label="Confidence" value={aiExplanation?.confidence || "Medium"} />
-          </div>
-        </>
-      ),
-    },
+            <div className="modal-note">
+              {aiExplanation?.why_it_matters ||
+                "Multiple suspicious runtime events were correlated from Splunk logs."}
+            </div>
 
-    pod: {
-      eyebrow: "Affected Asset",
-      title: "Kubernetes Pod details",
-      content: (
-        <>
-          <p className="detail-copy">
-            A Pod is the smallest Kubernetes unit running an application
-            container. This is the workload affected by the suspicious package.
-          </p>
+            <p className="modal-copy">
+              {aiExplanation?.recommended_response ||
+                "Review the evidence timeline and run containment actions if needed."}
+            </p>
 
-          <div className="mini-detail-grid">
-            <DetailRow label="Pod" value={episode?.pod} />
-            <DetailRow label="Namespace" value={episode?.namespace} />
-            <DetailRow label="Service" value={episode?.service} />
-            <DetailRow label="Image" value={episode?.image} />
-          </div>
-        </>
-      ),
-    },
+            <div className="modal-grid">
+              <ModalRow label="Confidence" value={aiExplanation?.confidence || "Medium"} />
+              <ModalRow label="Risk level" value={episode?.risk_level} />
+            </div>
+          </>
+        ),
+      },
 
-    package: {
-      eyebrow: "Suspicious Package",
-      title: episode?.package || "Unknown package",
-      content: (
-        <>
-          <p className="detail-copy">
-            A package is an external dependency or library used by the
-            application. In this case, Splunk evidence shows suspicious runtime
-            behavior connected to this dependency.
-          </p>
+      signals: {
+        eyebrow: "Splunk Analysis",
+        title: "How the evidence was separated",
+        tone: "yellow",
+        content: (
+          <>
+            <p className="modal-copy">
+              The case is built by grouping Splunk events into meaningful
+              security signals.
+            </p>
 
-          <div className="mini-detail-grid">
-            <DetailRow label="Package" value={episode?.package} />
-            <DetailRow label="Service" value={episode?.service} />
-            <DetailRow label="Environment" value={episode?.environment} />
-          </div>
-        </>
-      ),
-    },
+            <div className="signal-cloud">
+              {(episode?.risk_signals || []).map((signal) => (
+                <SignalPill key={signal} signal={signal} />
+              ))}
+            </div>
 
-    containment: {
-      eyebrow: "Containment",
-      title: "Current response status",
-      content: (
-        <>
-          <p className="detail-copy">
-            Containment means limiting the suspicious workload so it cannot keep
-            communicating outward or spreading. CivicShield uses Kubernetes
-            quarantine labeling and deny-egress NetworkPolicy for this prototype.
-          </p>
+            <div className="modal-grid">
+              <ModalRow label="Risk score" value={`${episode?.risk_score ?? "--"}/100`} />
+              <ModalRow label="Containment" value={episode?.containment} />
+            </div>
+          </>
+        ),
+      },
 
-          <div className="mini-detail-grid">
-            <DetailRow label="Status" value={containment} />
-            <DetailRow label="Audit Actions" value={auditData?.count || 0} />
-            <DetailRow label="Primary Action 1" value="Quarantine Pod" />
-            <DetailRow label="Primary Action 2" value="Apply NetworkPolicy" />
-          </div>
+      response: {
+        eyebrow: "Response",
+        title: "What the user can do next",
+        tone: "red",
+        content: (
+          <>
+            <p className="modal-copy">
+              After understanding the evidence, the user can run response actions.
+              In Kubernetes mode, the app can quarantine the affected pod and
+              apply a deny-egress NetworkPolicy.
+            </p>
 
-          <button
-            className="panel-action-button"
-            type="button"
-            onClick={() => onTabChange("containment")}
-          >
-            Open Containment
-          </button>
-        </>
-      ),
-    },
+            <div className="modal-grid">
+              <ModalRow label="Target pod" value={episode?.pod} />
+              <ModalRow label="Namespace" value={episode?.namespace} />
+              <ModalRow label="Audit actions" value={auditData?.count || 0} />
+              <ModalRow label="Status" value={episode?.containment} />
+            </div>
 
-    ai: {
-      eyebrow: "AI Explanation",
-      title: "Case summary generated from Splunk evidence",
-      content: (
-        <>
-          <p className="detail-copy">
-            {aiExplanation?.case_summary ||
-              "CivicShield analyzed Splunk evidence and built an incident case."}
-          </p>
-
-          <p className="detail-copy">
-            {aiExplanation?.recommended_response ||
-              "Review the evidence timeline and run containment actions if needed."}
-          </p>
-
-          <div className="mini-detail-grid">
-            <DetailRow label="Confidence" value={aiExplanation?.confidence || "Medium"} />
-            <DetailRow label="Source" value="CivicShield AI explanation layer" />
-          </div>
-        </>
-      ),
-    },
-
-    splunk: {
-      eyebrow: "Splunk Source",
-      title: "Evidence source",
-      content: (
-        <>
-          <p className="detail-copy">
-            The demo data is synthetic, but the pipeline is real: events are
-            indexed in Splunk, queried by the backend, converted into an
-            incident case, and connected to Kubernetes containment actions.
-          </p>
-
-          <div className="mini-detail-grid">
-            <DetailRow label="Source" value={source} />
-            <DetailRow label="Index" value={index} />
-            <DetailRow label="Events Analyzed" value={eventCount} />
-          </div>
-        </>
-      ),
-    },
-  };
+            <button
+              type="button"
+              className="modal-action"
+              onClick={() => onTabChange("containment")}
+            >
+              Open response workspace
+            </button>
+          </>
+        ),
+      },
+    }),
+    [episodeData, episode, aiExplanation, auditData, eventCount, sourceIndex, onTabChange]
+  );
 
   return (
-    <div className="overview-screen">
-      <section className="overview-main-card">
-        <div className="overview-case-copy">
+    <div className="case-page">
+      <section className="hero-panel">
+        <div className="hero-copy">
           <p className="eyebrow">Case Overview</p>
-          <h2>{episode?.episode_title || "Supply Chain Incident Case"}</h2>
+          <h1>{episode?.episode_title || "Supply Chain Incident Case"}</h1>
           <p>
-            Splunk evidence was correlated into one incident case. Start with the
-            timeline to understand what happened, then run containment actions.
+            Splunk analyzes the logs. CivicShield separates the evidence and
+            turns it into a readable AI summary and Kubernetes response workflow.
           </p>
 
-          <div className="overview-actions">
+          <div className="hero-actions">
             <button
-              className="primary-action"
               type="button"
+              className="primary-action"
               onClick={() => onTabChange("timeline")}
             >
               View Evidence
             </button>
             <button
-              className="secondary-action"
               type="button"
+              className="secondary-action"
+              onClick={() => setModalKey("ai")}
+            >
+              AI Summary
+            </button>
+            <button
+              type="button"
+              className="secondary-action"
               onClick={() => onTabChange("containment")}
             >
               Run Containment
@@ -244,72 +245,132 @@ function CaseOverviewPage({
           </div>
         </div>
 
-        <div className="overview-side-rail">
-          <button type="button" onClick={() => setActiveDetail(details.ai)}>
-            AI Summary
-          </button>
-          <button type="button" onClick={() => setActiveDetail(details.splunk)}>
-            Splunk Source
-          </button>
-          <button type="button" onClick={() => setActiveDetail(details.risk)}>
-            Risk Signals
-          </button>
+        <div className="flow-panel">
+          <FlowButton
+            number="01"
+            title="Logs"
+            subtitle="Indexed in Splunk"
+            active
+            onClick={() => setModalKey("logs")}
+          />
+          <FlowButton
+            number="02"
+            title="Analysis"
+            subtitle="Signals separated"
+            active
+            onClick={() => setModalKey("signals")}
+          />
+          <FlowButton
+            number="03"
+            title="AI Summary"
+            subtitle="Readable explanation"
+            active
+            onClick={() => setModalKey("ai")}
+          />
+          <FlowButton
+            number="04"
+            title="Response"
+            subtitle="Kubernetes actions"
+            onClick={() => setModalKey("response")}
+          />
         </div>
       </section>
 
-      <section className="overview-metric-grid">
-        <SummaryMetric
+      <section className="info-grid">
+        <InfoCard
           label="Risk"
-          value={riskLevel}
-          helper={`${episode?.risk_score ?? "--"}/100`}
-          tone={`risk-${riskLevel.toLowerCase()}`}
-          onClick={() => setActiveDetail(details.risk)}
+          value={episode?.risk_level}
+          tone="red"
+          onClick={() => setModalKey("signals")}
         />
-        <SummaryMetric
-          label="Affected Pod"
+        <InfoCard
+          label="Pod"
           value={episode?.pod}
-          helper={episode?.namespace}
-          onClick={() => setActiveDetail(details.pod)}
+          tone="blue"
+          onClick={() =>
+            onOpenDrawer({
+              type: "Affected asset",
+              title: episode?.pod,
+              subtitle: "Kubernetes pod",
+              data: episode,
+            })
+          }
         />
-        <SummaryMetric
+        <InfoCard
           label="Package"
           value={episode?.package}
-          helper="Suspicious dependency"
-          tone="warning"
-          onClick={() => setActiveDetail(details.package)}
+          tone="yellow"
+          onClick={() => setModalKey("signals")}
         />
-        <SummaryMetric
-          label="Containment"
-          value={containment}
-          helper={`${auditData?.count || 0} audit actions`}
-          tone="contained"
-          onClick={() => setActiveDetail(details.containment)}
+        <InfoCard
+          label="Events"
+          value={eventCount}
+          tone="green"
+          onClick={() => setModalKey("logs")}
         />
       </section>
 
-      <section className="overview-detail-layout">
-        <div className="overview-mini-flow">
-          <div className="mini-flow-item">
-            <span>01</span>
-            <strong>Splunk Evidence</strong>
-          </div>
-          <div className="mini-flow-line" />
-          <div className="mini-flow-item">
-            <span>02</span>
-            <strong>Incident Case</strong>
-          </div>
-          <div className="mini-flow-line" />
-          <div className="mini-flow-item">
-            <span>03</span>
-            <strong>Kubernetes Containment</strong>
-          </div>
-        </div>
+      <section className="overview-grid">
+        <article className="evidence-panel">
+          <div className="panel-head">
+            <div>
+              <p className="eyebrow">Evidence Movement</p>
+              <h2>What the logs are saying</h2>
+            </div>
 
-        <DetailPanel
-          activeDetail={activeDetail}
-          onClose={() => setActiveDetail(null)}
-        />
+            <button type="button" onClick={() => onTabChange("timeline")}>
+              Open full timeline
+            </button>
+          </div>
+
+          <div className="evidence-surface">
+            <div className="surface-grid" />
+            <div className="surface-line" />
+            <div className="surface-glow glow-a" />
+            <div className="surface-glow glow-b" />
+
+            <div className="stage-mini-grid">
+              {visibleStages.map((stage) => (
+                <StageMini
+                  key={stage.id}
+                  stage={stage}
+                  onClick={() =>
+                    onOpenDrawer({
+                      type: "Splunk evidence",
+                      title: stage.stage,
+                      subtitle: stage.headline,
+                      data: stage,
+                    })
+                  }
+                />
+              ))}
+            </div>
+          </div>
+        </article>
+
+        <article className="side-pocket">
+          <p className="eyebrow">AI Summary</p>
+          <h2>Open the readable explanation</h2>
+          <p>
+            Keep the page clean. Click when you want the natural-language case
+            explanation.
+          </p>
+          <button type="button" onClick={() => setModalKey("ai")}>
+            Open AI card
+          </button>
+        </article>
+
+        <article className="side-pocket">
+          <p className="eyebrow">Next Step</p>
+          <h2>Contain the affected workload</h2>
+          <p>{episode?.containment || "Containment Ready"}</p>
+          <button type="button" onClick={() => setModalKey("response")}>
+            Check response
+          </button>
+        </article>
       </section>
+
+      <PopModal modal={modals[modalKey]} onClose={() => setModalKey(null)} />
     </div>
   );
 }
