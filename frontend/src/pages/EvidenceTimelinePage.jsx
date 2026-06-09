@@ -1,265 +1,121 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
-function TimelineNode({ stage, index, isActive, isCompleted, onClick }) {
+function TimelineCard({ stage, active, onClick }) {
   return (
     <button
       type="button"
-      className={`timeline-node ${isActive ? "active" : ""} ${
-        isCompleted ? "completed" : ""
-      } severity-${stage.severity || "medium"}`}
+      className={`timeline-card ${active ? "active" : ""} severity-${
+        stage.severity || "medium"
+      }`}
       onClick={onClick}
     >
-      <span className="timeline-node-index">{String(index + 1).padStart(2, "0")}</span>
+      <span>{String(stage.step).padStart(2, "0")}</span>
       <strong>{stage.stage}</strong>
-      <small>{stage.time || "--"}</small>
+      <small>{stage.headline}</small>
     </button>
   );
 }
 
-function StageDetailPanel({ stage, onClose }) {
-  if (!stage) {
-    return (
-      <aside className="stage-detail-panel empty">
-        <p className="eyebrow">Evidence Detail</p>
-        <h3>Select a stage</h3>
-        <p>
-          Click a timeline stage to inspect the Splunk evidence and why that event
-          matters.
-        </p>
-      </aside>
-    );
-  }
-
-  const evidence = stage.evidence || {};
-
-  return (
-    <aside className="stage-detail-panel active">
-      <div className="stage-detail-header">
-        <div>
-          <p className="eyebrow">Splunk Evidence</p>
-          <h3>{stage.stage}</h3>
-        </div>
-
-        <button type="button" onClick={onClose} aria-label="Close evidence detail">
-          ×
-        </button>
-      </div>
-
-      <div className="stage-headline-block">
-        <span className={`stage-severity-badge severity-${stage.severity}`}>
-          {stage.severity}
-        </span>
-        <strong>{stage.headline}</strong>
-      </div>
-
-      <section className="stage-detail-section">
-        <h4>Why it matters</h4>
-        <p>{stage.explanation || stage.description}</p>
-      </section>
-
-      <section className="stage-field-grid">
-        <div>
-          <span>Timestamp</span>
-          <strong>{evidence.timestamp || "--"}</strong>
-        </div>
-        <div>
-          <span>Event Type</span>
-          <strong>{stage.event_type || "--"}</strong>
-        </div>
-        <div>
-          <span>Risk Signal</span>
-          <strong>{stage.risk_signal || "--"}</strong>
-        </div>
-        <div>
-          <span>Status</span>
-          <strong>{evidence.status || stage.status || "--"}</strong>
-        </div>
-        <div>
-          <span>Pod</span>
-          <strong>{evidence.pod || "--"}</strong>
-        </div>
-        <div>
-          <span>Package</span>
-          <strong>{evidence.package || "--"}</strong>
-        </div>
-        <div>
-          <span>Process</span>
-          <strong>{evidence.process || "--"}</strong>
-        </div>
-        <div>
-          <span>Destination IP</span>
-          <strong>{evidence.dest_ip || "--"}</strong>
-        </div>
-      </section>
-
-      {evidence.file_path && (
-        <section className="stage-code-block">
-          <span>File Path</span>
-          <code>{evidence.file_path}</code>
-        </section>
-      )}
-    </aside>
-  );
-}
-
-function EvidenceTimelinePage({ episode, evidenceTimeline, onEvidenceSelect }) {
-  const stages = useMemo(
-    () => evidenceTimeline?.stages || [],
-    [evidenceTimeline]
-  );
-
+function EvidenceTimelinePage({ evidenceTimeline, onOpenDrawer }) {
+  const stages = evidenceTimeline?.stages || [];
   const [activeIndex, setActiveIndex] = useState(0);
-  const [selectedStage, setSelectedStage] = useState(null);
-  const [isPlaying, setIsPlaying] = useState(true);
+  const [playing, setPlaying] = useState(true);
 
   const activeStage = stages[activeIndex];
 
   useEffect(() => {
-    if (!isPlaying || stages.length === 0) return undefined;
+    if (!playing || stages.length === 0) return undefined;
 
     const timer = window.setInterval(() => {
       setActiveIndex((current) => {
-        if (current >= stages.length - 1) {
-          return 0;
-        }
-
+        if (current >= stages.length - 1) return 0;
         return current + 1;
       });
-    }, 2100);
+    }, 1800);
 
     return () => window.clearInterval(timer);
-  }, [isPlaying, stages.length]);
-
-  useEffect(() => {
-    if (!selectedStage && activeStage) {
-      setSelectedStage(activeStage);
-    }
-  }, [activeStage, selectedStage]);
-
-  function handleStageClick(stage, index) {
-    setActiveIndex(index);
-    setSelectedStage(stage);
-    setIsPlaying(false);
-
-    if (onEvidenceSelect) {
-      onEvidenceSelect({
-        title: stage.stage,
-        subtitle: stage.headline,
-        type: "Splunk Evidence",
-        data: stage,
-      });
-    }
-  }
-
-  function handleReplay() {
-    setActiveIndex(0);
-    setSelectedStage(stages[0] || null);
-    setIsPlaying(true);
-  }
-
-  function handleTogglePlay() {
-    setIsPlaying((value) => !value);
-  }
-
-  function handleNext() {
-    setIsPlaying(false);
-    setActiveIndex((current) => {
-      const nextIndex = Math.min(current + 1, stages.length - 1);
-      setSelectedStage(stages[nextIndex]);
-      return nextIndex;
-    });
-  }
+  }, [playing, stages.length]);
 
   if (!stages.length) {
     return (
-      <div className="timeline-screen">
-        <section className="timeline-empty-state">
-          <p className="eyebrow">Evidence Timeline</p>
-          <h2>No evidence timeline available</h2>
-          <p>
-            CivicShield could not reconstruct timeline stages from the current
-            Splunk response.
-          </p>
-        </section>
-      </div>
+      <section className="empty-panel">
+        <p className="eyebrow">Evidence Timeline</p>
+        <h1>No Splunk evidence loaded</h1>
+        <p>The backend did not return timeline stages.</p>
+      </section>
     );
   }
 
+  function openStage(stage, index) {
+    setActiveIndex(index);
+    setPlaying(false);
+    onOpenDrawer({
+      type: "Splunk evidence",
+      title: stage.stage,
+      subtitle: stage.headline,
+      data: stage,
+    });
+  }
+
   return (
-    <div className="timeline-screen">
-      <section className="timeline-main-stage">
-        <div className="timeline-copy">
+    <div className="timeline-page">
+      <section className="hero-panel compact">
+        <div className="hero-copy">
           <p className="eyebrow">Evidence Timeline</p>
-          <h2>Replay the Splunk evidence sequence</h2>
+          <h1>Replay the log movement</h1>
           <p>
-            Each stage is built from Splunk event fields such as event_type,
-            severity, file_path, process, and destination IP.
+            Each card is one Splunk event transformed into an evidence stage.
           </p>
         </div>
 
-        <div className="timeline-command-bar">
-          <button type="button" onClick={handleReplay}>
+        <div className="timeline-controls">
+          <button
+            type="button"
+            onClick={() => {
+              setActiveIndex(0);
+              setPlaying(true);
+            }}
+          >
             Replay
           </button>
-          <button type="button" onClick={handleTogglePlay}>
-            {isPlaying ? "Pause" : "Play"}
+          <button type="button" onClick={() => setPlaying((value) => !value)}>
+            {playing ? "Pause" : "Play"}
           </button>
-          <button type="button" onClick={handleNext}>
+          <button
+            type="button"
+            onClick={() => {
+              setPlaying(false);
+              setActiveIndex((current) => Math.min(current + 1, stages.length - 1));
+            }}
+          >
             Next
           </button>
         </div>
       </section>
 
-      <section className="timeline-visual-layout">
-        <article className="timeline-visual-card">
-          <div className="timeline-current-stage">
-            <span>
-              Stage {activeIndex + 1} / {stages.length}
-            </span>
-            <strong>{activeStage?.stage}</strong>
-            <p>{activeStage?.headline}</p>
-          </div>
+      <section className="timeline-board">
+        <div className="current-stage">
+          <span>
+            Stage {activeIndex + 1} / {stages.length}
+          </span>
+          <h2>{activeStage?.stage}</h2>
+          <p>{activeStage?.headline}</p>
+        </div>
 
-          <div className="timeline-progress-rail">
-            <div
-              className="timeline-progress-value"
-              style={{
-                width: `${((activeIndex + 1) / stages.length) * 100}%`,
-              }}
+        <div className="progress">
+          <div style={{ width: `${((activeIndex + 1) / stages.length) * 100}%` }} />
+        </div>
+
+        <div className="timeline-grid">
+          {stages.map((stage, index) => (
+            <TimelineCard
+              key={stage.id}
+              stage={stage}
+              active={index === activeIndex}
+              onClick={() => openStage(stage, index)}
             />
-          </div>
-
-          <div className="timeline-node-track">
-            {stages.map((stage, index) => (
-              <div className="timeline-node-wrap" key={stage.id}>
-                <TimelineNode
-                  stage={stage}
-                  index={index}
-                  isActive={index === activeIndex}
-                  isCompleted={index < activeIndex}
-                  onClick={() => handleStageClick(stage, index)}
-                />
-
-                {index < stages.length - 1 && <div className="timeline-connector" />}
-              </div>
-            ))}
-          </div>
-        </article>
-
-        <StageDetailPanel
-          stage={selectedStage}
-          onClose={() => setSelectedStage(null)}
-        />
-      </section>
-
-      <section className="timeline-footer-note">
-        <span>Source</span>
-        <strong>Splunk index: civic_supply_chain_logs</strong>
-        <p>
-          This is a replay of indexed evidence, not a generated animation. The
-          visual sequence is reconstructed from the incident events returned by
-          the backend.
-        </p>
+          ))}
+        </div>
       </section>
     </div>
   );
