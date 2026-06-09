@@ -2,41 +2,45 @@ function TopNav({ activeTab, onTabChange }) {
   const tabs = [
     {
       id: "overview",
-      label: "Case Overview",
-      description: "Incident summary",
+      title: "Case",
+      subtitle: "Splunk + AI",
     },
     {
       id: "timeline",
-      label: "Evidence Timeline",
-      description: "Splunk evidence replay",
+      title: "Evidence",
+      subtitle: "Log replay",
     },
     {
       id: "containment",
-      label: "Containment",
-      description: "Response actions",
+      title: "Response",
+      subtitle: "Kubernetes",
     },
   ];
 
   return (
     <header className="top-nav">
-      <div className="brand-block">
-        <div className="brand-mark">CS</div>
-        <div>
-          <h1>CivicShield AI</h1>
-          <p>Splunk-to-Kubernetes Incident Response Workbench</p>
-        </div>
-      </div>
+      <button
+        type="button"
+        className="brand"
+        onClick={() => onTabChange("overview")}
+      >
+        <span className="brand-mark">CS</span>
+        <span>
+          <strong>CivicShield</strong>
+          <small>Splunk-to-Kubernetes response workbench</small>
+        </span>
+      </button>
 
-      <nav className="tab-nav" aria-label="Main navigation">
+      <nav className="tabs">
         {tabs.map((tab) => (
           <button
             key={tab.id}
-            className={`tab-button ${activeTab === tab.id ? "active" : ""}`}
-            onClick={() => onTabChange(tab.id)}
             type="button"
+            className={`tab ${activeTab === tab.id ? "active" : ""}`}
+            onClick={() => onTabChange(tab.id)}
           >
-            <span>{tab.label}</span>
-            <small>{tab.description}</small>
+            <strong>{tab.title}</strong>
+            <small>{tab.subtitle}</small>
           </button>
         ))}
       </nav>
