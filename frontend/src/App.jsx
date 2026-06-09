@@ -2,9 +2,9 @@ import { useEffect, useState } from "react";
 import "./App.css";
 
 import TopNav from "./components/layout/TopNav";
-import DashboardPage from "./pages/DashboardPage";
-import AttackFlowPage from "./pages/AttackFlowPage";
-import EvidencePage from "./pages/EvidencePage";
+import CaseOverviewPage from "./pages/CaseOverviewPage";
+import EvidenceTimelinePage from "./pages/EvidenceTimelinePage";
+import ContainmentPage from "./pages/ContainmentPage";
 import DetailDrawer from "./components/shared/DetailDrawer";
 
 import {
@@ -20,7 +20,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  async function loadEpisode() {
+  async function loadIncidentCase() {
     setLoading(true);
     setError("");
 
@@ -33,7 +33,7 @@ function App() {
       setEpisodeData(episodeResponse);
       setAuditData(auditResponse);
     } catch (requestError) {
-      setError(requestError.message || "Failed to load incident data.");
+      setError(requestError.message || "Failed to load incident case.");
     } finally {
       setLoading(false);
     }
@@ -49,15 +49,15 @@ function App() {
   }
 
   useEffect(() => {
-    loadEpisode();
+    loadIncidentCase();
   }, []);
 
   if (loading) {
     return (
       <main className="app-shell">
         <div className="loading-state">
-          <p className="eyebrow">Loading</p>
-          <h1>Building incident case from Splunk evidence...</h1>
+          <p className="eyebrow">Loading Case</p>
+          <h1>Building incident case from Splunk evidence</h1>
           <p>
             CivicShield is retrieving supply chain telemetry, reconstructing the
             evidence timeline, and preparing containment actions.
@@ -71,10 +71,10 @@ function App() {
     return (
       <main className="app-shell">
         <div className="error-state">
-          <p className="eyebrow">Backend connection issue</p>
-          <h1>Unable to load incident case.</h1>
+          <p className="eyebrow">Connection Issue</p>
+          <h1>Unable to load incident case</h1>
           <p>{error}</p>
-          <button type="button" onClick={loadEpisode}>
+          <button type="button" onClick={loadIncidentCase}>
             Retry
           </button>
         </div>
@@ -94,7 +94,7 @@ function App() {
 
       <section className="workspace">
         {activeTab === "overview" && (
-          <DashboardPage
+          <CaseOverviewPage
             episodeData={episodeData}
             episode={episode}
             aiExplanation={aiExplanation}
@@ -104,8 +104,7 @@ function App() {
         )}
 
         {activeTab === "timeline" && (
-          <AttackFlowPage
-            episodeData={episodeData}
+          <EvidenceTimelinePage
             episode={episode}
             evidenceTimeline={evidenceTimeline}
             onEvidenceSelect={setDrawer}
@@ -113,7 +112,7 @@ function App() {
         )}
 
         {activeTab === "containment" && (
-          <EvidencePage
+          <ContainmentPage
             episodeData={episodeData}
             episode={episode}
             playbook={playbook}
