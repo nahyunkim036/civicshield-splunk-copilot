@@ -4,26 +4,15 @@ function AuditCard({ event }) {
   return (
     <article className="audit-card">
       <div>
-        <span className="audit-action">{event.action_type}</span>
+        <span>{event.action_type}</span>
         <strong>{event.status}</strong>
       </div>
       <p>
-        Target <strong>{event.target}</strong> in namespace{" "}
-        <strong>{event.namespace}</strong>
+        Target <code>{event.target}</code> in namespace{" "}
+        <code>{event.namespace}</code>
       </p>
       <small>{event.timestamp}</small>
     </article>
-  );
-}
-
-function RawEventRow({ event, onClick }) {
-  return (
-    <button className="raw-event-row" type="button" onClick={onClick}>
-      <span>{event.timestamp}</span>
-      <strong>{event.event_type}</strong>
-      <span>{event.severity}</span>
-      <span>{event.status}</span>
-    </button>
   );
 }
 
@@ -36,21 +25,20 @@ function ContainmentPage({
   onLogSelect,
 }) {
   return (
-    <div className="page-stack">
-      <section className="containment-hero">
-        <div>
-          <p className="eyebrow">Containment</p>
-          <h2>Run response actions for the affected pod</h2>
+    <div className="response-page">
+      <section className="hero-panel compact">
+        <div className="hero-copy">
+          <p className="eyebrow">Response</p>
+          <h1>Contain the affected workload</h1>
           <p>
-            CivicShield turns Splunk evidence into clear response actions. The
-            primary actions quarantine the affected Kubernetes Pod and apply a
-            deny-egress NetworkPolicy.
+            Pick one action, review what it does, then run it. Primary actions
+            can execute against Kubernetes mode.
           </p>
         </div>
 
-        <aside className="containment-summary">
+        <div className="summary-panel">
           <div>
-            <span>Affected Pod</span>
+            <span>Pod</span>
             <strong>{episode?.pod || "unknown"}</strong>
           </div>
           <div>
@@ -58,10 +46,10 @@ function ContainmentPage({
             <strong>{episode?.namespace || "unknown"}</strong>
           </div>
           <div>
-            <span>Current Status</span>
-            <strong>{episode?.containment || "Containment Ready"}</strong>
+            <span>Status</span>
+            <strong>{episode?.containment || "Ready"}</strong>
           </div>
-        </aside>
+        </div>
       </section>
 
       <ContainmentActions
@@ -70,18 +58,18 @@ function ContainmentPage({
         onActionComplete={onAuditRefresh}
       />
 
-      <section className="content-grid two-column">
+      <section className="bottom-grid">
         <article className="panel">
-          <div className="section-heading">
-            <p className="eyebrow">Audit Trail</p>
-            <h3>Response actions recorded by CivicShield</h3>
+          <div className="panel-head simple">
+            <div>
+              <p className="eyebrow">Audit</p>
+              <h2>Recorded actions</h2>
+            </div>
           </div>
 
           <div className="audit-list">
             {(auditData?.events || []).length === 0 && (
-              <p className="small-note">
-                No response actions have been recorded yet.
-              </p>
+              <p className="muted">No response actions recorded yet.</p>
             )}
 
             {(auditData?.events || []).map((event) => (
@@ -91,25 +79,33 @@ function ContainmentPage({
         </article>
 
         <article className="panel">
-          <div className="section-heading">
-            <p className="eyebrow">Splunk Events</p>
-            <h3>Raw evidence used for this case</h3>
+          <div className="panel-head simple">
+            <div>
+              <p className="eyebrow">Raw Evidence</p>
+              <h2>Splunk events</h2>
+            </div>
           </div>
 
-          <div className="raw-event-list">
+          <div className="raw-list">
             {(rawEvents || []).map((event, index) => (
-              <RawEventRow
+              <button
                 key={`${event.timestamp}-${event.event_type}-${index}`}
-                event={event}
+                type="button"
+                className="raw-row"
                 onClick={() =>
                   onLogSelect({
+                    type: "Raw Splunk event",
                     title: event.event_type,
                     subtitle: event.description,
-                    type: "Raw Splunk Event",
                     data: event,
                   })
                 }
-              />
+              >
+                <span>{event.timestamp}</span>
+                <strong>{event.event_type}</strong>
+                <span>{event.severity}</span>
+                <span>{event.status}</span>
+              </button>
             ))}
           </div>
         </article>
