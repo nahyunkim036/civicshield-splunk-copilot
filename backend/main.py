@@ -21,15 +21,20 @@ app.add_middleware(
 def root():
     return {
         "message": "CivicShield AI backend is running",
-        "project": "Supply Chain Incident Response Agent",
-        "core_pipeline": [
-            "Splunk supply chain logs",
-            "Incident episode correlation",
-            "Attack Movie reconstruction",
-            "Auto Playbook response",
-            "Kubernetes quarantine",
-            "NetworkPolicy containment",
+        "project": "Splunk-powered Supply Chain Incident Response Workbench",
+        "pipeline": [
+            "Splunk evidence ingestion",
+            "Incident case overview",
+            "Evidence timeline reconstruction",
+            "AI-readable case explanation",
+            "Kubernetes containment actions",
             "Audit trail",
+        ],
+        "core_actions": [
+            "Quarantine Pod",
+            "Apply Deny-Egress NetworkPolicy",
+            "Rotate Service Account Token",
+            "Open Dependency Review",
         ],
     }
 
