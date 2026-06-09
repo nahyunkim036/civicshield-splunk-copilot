@@ -4,7 +4,8 @@ async function fetchJson(url, options = {}) {
   const response = await fetch(url, options);
 
   if (!response.ok) {
-    throw new Error(`Request failed: ${response.status}`);
+    const text = await response.text();
+    throw new Error(`Request failed: ${response.status} ${text}`);
   }
 
   return response.json();
@@ -12,6 +13,10 @@ async function fetchJson(url, options = {}) {
 
 export async function fetchSupplyChainEpisode() {
   return fetchJson(`${API_BASE_URL}/api/supply-chain/episode`);
+}
+
+export async function fetchResponseAudit() {
+  return fetchJson(`${API_BASE_URL}/api/response/audit`);
 }
 
 export async function runResponseAction(apiPath, payload) {
@@ -22,8 +27,4 @@ export async function runResponseAction(apiPath, payload) {
     },
     body: JSON.stringify(payload),
   });
-}
-
-export async function fetchResponseAudit() {
-  return fetchJson(`${API_BASE_URL}/api/response/audit`);
 }
