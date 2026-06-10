@@ -1585,3 +1585,65 @@ pre {
     grid-template-columns: 1fr;
   }
 }
+/* Align Evidence Timeline panels */
+
+.timeline-workbench {
+  align-items: stretch;
+}
+
+.timeline-list-panel,
+.timeline-detail-panel {
+  min-height: 620px;
+}
+
+.timeline-list-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.timeline-list {
+  flex: 1;
+  align-content: stretch;
+}
+
+.timeline-card.compact {
+  min-height: 112px;
+}
+
+.timeline-detail-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.timeline-detail-grid {
+  margin-top: 12px;
+}
+
+.timeline-code-snippet {
+  margin-top: 12px;
+}
+
+.text-action {
+  margin-top: auto;
+  padding-top: 14px;
+}
+
+/* Make the right detail panel visually balanced */
+.timeline-detail-top {
+  min-height: 92px;
+}
+
+.timeline-meaning-card {
+  min-height: 78px;
+}
+
+/* Slightly reduce inner field height so the detail panel does not feel too tall */
+.timeline-detail-field {
+  min-height: 74px;
+}
+
+/* Smaller top buttons */
+.mini-controls button {
+  font-size: 0.78rem;
+  padding: 4px 6px;
+}
