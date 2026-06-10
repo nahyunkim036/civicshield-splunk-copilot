@@ -16,6 +16,15 @@ function AuditCard({ event }) {
   );
 }
 
+function TargetChip({ label, value }) {
+  return (
+    <div className="target-chip">
+      <span>{label}</span>
+      <strong>{value || "unknown"}</strong>
+    </div>
+  );
+}
+
 function ContainmentPage({
   episode,
   playbook,
@@ -25,30 +34,17 @@ function ContainmentPage({
   onLogSelect,
 }) {
   return (
-    <div className="response-page">
-      <section className="hero-panel compact">
-        <div className="hero-copy">
-          <p className="eyebrow">Response</p>
-          <h1>Contain the affected workload</h1>
-          <p>
-            Pick one action, review what it does, then run it. Primary actions
-            can execute against Kubernetes mode.
-          </p>
+    <div className="response-page compact-response">
+      <section className="response-mini-header">
+        <div>
+          <p className="eyebrow">🛡️ Response</p>
+          <h1>Containment actions</h1>
         </div>
 
-        <div className="summary-panel">
-          <div>
-            <span>Pod</span>
-            <strong>{episode?.pod || "unknown"}</strong>
-          </div>
-          <div>
-            <span>Namespace</span>
-            <strong>{episode?.namespace || "unknown"}</strong>
-          </div>
-          <div>
-            <span>Status</span>
-            <strong>{episode?.containment || "Ready"}</strong>
-          </div>
+        <div className="target-strip">
+          <TargetChip label="Pod" value={episode?.pod} />
+          <TargetChip label="Namespace" value={episode?.namespace} />
+          <TargetChip label="Status" value={episode?.containment} />
         </div>
       </section>
 
@@ -58,12 +54,12 @@ function ContainmentPage({
         onActionComplete={onAuditRefresh}
       />
 
-      <section className="bottom-grid">
-        <article className="panel">
+      <section className="bottom-grid compact-bottom-grid">
+        <article className="panel compact-panel">
           <div className="panel-head simple">
             <div>
               <p className="eyebrow">Audit</p>
-              <h2>Recorded actions</h2>
+              <h2>Action history</h2>
             </div>
           </div>
 
@@ -78,11 +74,11 @@ function ContainmentPage({
           </div>
         </article>
 
-        <article className="panel">
+        <article className="panel compact-panel">
           <div className="panel-head simple">
             <div>
-              <p className="eyebrow">Raw Evidence</p>
-              <h2>Splunk events</h2>
+              <p className="eyebrow">Evidence</p>
+              <h2>Source events</h2>
             </div>
           </div>
 
