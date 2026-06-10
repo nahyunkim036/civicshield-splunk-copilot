@@ -1,60 +1,42 @@
 import { useEffect, useState } from "react";
 
 function getStageMeaning(stage) {
-  const signal = stage?.risk_signal || stage?.event_type;
-
-  const meanings = {
-    supply_chain_entry:
-      "A suspicious package appeared inside the application runtime.",
-    unexpected_execution:
-      "The package behavior moved from loading to actual process execution.",
-    credential_access:
-      "The workload accessed a Kubernetes service account token path.",
-    external_c2_connection:
-      "The pod attempted outbound communication to an unapproved destination.",
-    privilege_escalation:
-      "The container attempted to increase its privileges.",
-    containment:
-      "The suspicious pod was marked for quarantine.",
-    egress_block:
-      "Outbound traffic was blocked using a Kubernetes NetworkPolicy.",
-    audit_record:
-      "The response action was recorded for review.",
-  };
-
-  return meanings[signal] || stage?.description || "Splunk evidence stage.";
+  if (stage?.meaning) return stage.meaning;
+  if (stage?.description) return stage.description;
+  return "This Splunk event is part of the detection evidence.";
 }
 
 function getStageOperatorNote(stage) {
-  const signal = stage?.risk_signal || stage?.event_type;
-
-  const notes = {
-    supply_chain_entry: "Check dependency source and runtime image.",
-    unexpected_execution: "Review process behavior inside the container.",
-    credential_access: "Treat exposed service account token as compromised.",
-    external_c2_connection: "Block outbound traffic before further exfiltration.",
-    privilege_escalation: "Keep the workload isolated and review permissions.",
-    containment: "Confirm quarantine label was applied to the pod.",
-    egress_block: "Confirm deny-egress policy exists in the namespace.",
-    audit_record: "Use the audit record as response evidence.",
-  };
-
-  return notes[signal] || "Review the raw event fields.";
+  if (stage?.operator_note) return stage.operator_note;
+  return "Review the raw Splunk event fields before running response actions.";
 }
 
-function TimelineCard({ stage, active, onClick }) {
+function TimelineRow({ stage, active, isLast, onClick }) {
   return (
     <button
       type="button"
-      className={`timeline-card compact ${active ? "active" : ""} severity-${
+      className={`timeline-row ${active ? "active" : ""} severity-${
         stage.severity || "medium"
       }`}
       onClick={onClick}
     >
-      <span>{String(stage.step).padStart(2, "0")}</span>
-      <div>
-        <strong>{stage.stage}</strong>
-        <small>{stage.headline}</small>
+      <div className="timeline-row-marker">
+        <span>{String(stage.step).padStart(2, "0")}</span>
+        {!isLast && <i />}
+      </div>
+
+      <div className="timeline-row-main">
+        <div className="timeline-row-top">
+          <strong>{stage.stage}</strong>
+          <small>{stage.time}</small>
+        </div>
+
+        <p>{stage.headline}</p>
+
+        <div className="timeline-row-meta">
+          <span>{stage.event_type}</span>
+          <span>{stage.severity}</span>
+        </div>
       </div>
     </button>
   );
@@ -99,7 +81,7 @@ function EvidenceTimelinePage({ evidenceTimeline, onOpenDrawer }) {
     );
   }
 
-  function selectStage(stage, index) {
+  function selectStage(index) {
     setActiveIndex(index);
     setPlaying(false);
   }
@@ -108,7 +90,7 @@ function EvidenceTimelinePage({ evidenceTimeline, onOpenDrawer }) {
     if (!activeStage) return;
 
     onOpenDrawer({
-      type: "Splunk evidence",
+      type: "Raw Splunk evidence",
       title: activeStage.stage,
       subtitle: activeStage.headline,
       data: activeStage,
@@ -120,7 +102,7 @@ function EvidenceTimelinePage({ evidenceTimeline, onOpenDrawer }) {
       <section className="timeline-mini-header">
         <div>
           <p className="eyebrow">🧩 Evidence</p>
-          <h1>Log movement</h1>
+          <h1>Detection path</h1>
         </div>
 
         <div className="mini-controls">
@@ -150,8 +132,8 @@ function EvidenceTimelinePage({ evidenceTimeline, onOpenDrawer }) {
         </div>
       </section>
 
-      <section className="timeline-workbench">
-        <article className="timeline-list-panel">
+      <section className="timeline-workbench flow-layout">
+        <article className="timeline-list-panel flow-list-panel">
           <div className="timeline-progress-mini">
             <span>
               {activeIndex + 1}/{stages.length}
@@ -165,19 +147,20 @@ function EvidenceTimelinePage({ evidenceTimeline, onOpenDrawer }) {
             </div>
           </div>
 
-          <div className="timeline-list">
+          <div className="timeline-flow-list">
             {stages.map((stage, index) => (
-              <TimelineCard
+              <TimelineRow
                 key={stage.id}
                 stage={stage}
                 active={index === activeIndex}
-                onClick={() => selectStage(stage, index)}
+                isLast={index === stages.length - 1}
+                onClick={() => selectStage(index)}
               />
             ))}
           </div>
         </article>
 
-        <aside className="timeline-detail-panel">
+        <aside className="timeline-detail-panel flow-detail-panel">
           <div className="timeline-detail-top">
             <div>
               <span className="stage-count">
@@ -219,7 +202,7 @@ function EvidenceTimelinePage({ evidenceTimeline, onOpenDrawer }) {
           )}
 
           <button type="button" className="text-action" onClick={openRawDetail}>
-            view raw event
+            view raw Splunk event
           </button>
         </aside>
       </section>
