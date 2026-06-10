@@ -1,29 +1,48 @@
 import { useMemo, useState } from "react";
 
-function InfoCard({ label, value, tone, onClick }) {
+function SummaryItem({ icon, label, value, tone, onClick }) {
   return (
     <button
       type="button"
-      className={`info-card ${tone || ""}`}
+      className={`summary-item ${tone || ""}`}
       onClick={onClick}
     >
-      <span>{label}</span>
-      <strong>{value || "unknown"}</strong>
+      <span className="summary-icon">{icon}</span>
+      <span className="summary-copy">
+        <small>{label}</small>
+        <strong>{value || "unknown"}</strong>
+      </span>
     </button>
   );
 }
 
-function FlowButton({ number, title, subtitle, active, onClick }) {
+function FlowStep({ icon, title, subtitle, active, onClick }) {
   return (
     <button
       type="button"
-      className={`flow-button ${active ? "active" : ""}`}
+      className={`compact-flow-step ${active ? "active" : ""}`}
       onClick={onClick}
     >
-      <span>{number}</span>
+      <span>{icon}</span>
       <div>
         <strong>{title}</strong>
         <small>{subtitle}</small>
+      </div>
+    </button>
+  );
+}
+
+function StagePreview({ stage, onClick }) {
+  return (
+    <button
+      type="button"
+      className={`stage-preview severity-${stage.severity || "medium"}`}
+      onClick={onClick}
+    >
+      <span>{String(stage.step).padStart(2, "0")}</span>
+      <div>
+        <strong>{stage.stage}</strong>
+        <small>{stage.headline}</small>
       </div>
     </button>
   );
@@ -57,7 +76,7 @@ function PopModal({ modal, onClose }) {
             <h2>{modal.title}</h2>
           </div>
 
-          <button type="button" onClick={onClose}>
+          <button type="button" onClick={onClose} aria-label="Close modal">
             ×
           </button>
         </div>
@@ -65,20 +84,6 @@ function PopModal({ modal, onClose }) {
         <div className="pop-body">{modal.content}</div>
       </section>
     </div>
-  );
-}
-
-function StageMini({ stage, onClick }) {
-  return (
-    <button
-      type="button"
-      className={`stage-mini severity-${stage.severity || "medium"}`}
-      onClick={onClick}
-    >
-      <span>{String(stage.step).padStart(2, "0")}</span>
-      <strong>{stage.stage}</strong>
-      <small>{stage.headline}</small>
-    </button>
   );
 }
 
@@ -94,22 +99,22 @@ function CaseOverviewPage({
   const [modalKey, setModalKey] = useState(null);
 
   const stages = evidenceTimeline?.stages || [];
-  const visibleStages = stages.slice(0, 6);
+  const visibleStages = stages.slice(0, 5);
   const eventCount = episodeData?.total_events_analyzed || episode?.event_count || 0;
   const sourceIndex = episodeData?.index || "civic_supply_chain_logs";
 
   const modals = useMemo(
     () => ({
       logs: {
-        eyebrow: "Splunk Source",
+        eyebrow: "📜 Splunk Logs",
         title: "What Splunk analyzed",
         tone: "blue",
         content: (
           <>
             <p className="modal-copy">
-              Splunk stores the supply-chain security events. The backend asks
-              Splunk for the indexed events, then separates them into risk
-              signals and timeline stages.
+              Splunk is the evidence source. The backend queries the indexed
+              supply-chain events and converts them into a case, timeline, and
+              response playbook.
             </p>
 
             <div className="modal-grid">
@@ -122,8 +127,36 @@ function CaseOverviewPage({
         ),
       },
 
+      signals: {
+        eyebrow: "🧪 Splunk Analysis",
+        title: "How the evidence was grouped",
+        tone: "yellow",
+        content: (
+          <>
+            <p className="modal-copy">
+              CivicShield groups Splunk events into security signals such as
+              package entry, credential access, external connection, privilege
+              escalation, and containment.
+            </p>
+
+            <div className="signal-cloud">
+              {(episode?.risk_signals || []).map((signal) => (
+                <SignalPill key={signal} signal={signal} />
+              ))}
+            </div>
+
+            <div className="modal-grid">
+              <ModalRow label="Risk level" value={episode?.risk_level} />
+              <ModalRow label="Risk score" value={`${episode?.risk_score ?? "--"}/100`} />
+              <ModalRow label="Pod" value={episode?.pod} />
+              <ModalRow label="Package" value={episode?.package} />
+            </div>
+          </>
+        ),
+      },
+
       ai: {
-        eyebrow: "AI Summary",
+        eyebrow: "🧠 AI Summary",
         title: "Readable case explanation",
         tone: "green",
         content: (
@@ -144,32 +177,10 @@ function CaseOverviewPage({
             </p>
 
             <div className="modal-grid">
-              <ModalRow label="Confidence" value={aiExplanation?.confidence || "Medium"} />
-              <ModalRow label="Risk level" value={episode?.risk_level} />
-            </div>
-          </>
-        ),
-      },
-
-      signals: {
-        eyebrow: "Splunk Analysis",
-        title: "How the evidence was separated",
-        tone: "yellow",
-        content: (
-          <>
-            <p className="modal-copy">
-              The case is built by grouping Splunk events into meaningful
-              security signals.
-            </p>
-
-            <div className="signal-cloud">
-              {(episode?.risk_signals || []).map((signal) => (
-                <SignalPill key={signal} signal={signal} />
-              ))}
-            </div>
-
-            <div className="modal-grid">
-              <ModalRow label="Risk score" value={`${episode?.risk_score ?? "--"}/100`} />
+              <ModalRow
+                label="Confidence"
+                value={aiExplanation?.confidence || "Medium"}
+              />
               <ModalRow label="Containment" value={episode?.containment} />
             </div>
           </>
@@ -177,15 +188,15 @@ function CaseOverviewPage({
       },
 
       response: {
-        eyebrow: "Response",
+        eyebrow: "🛡️ Response",
         title: "What the user can do next",
         tone: "red",
         content: (
           <>
             <p className="modal-copy">
-              After understanding the evidence, the user can run response actions.
-              In Kubernetes mode, the app can quarantine the affected pod and
-              apply a deny-egress NetworkPolicy.
+              After reviewing the evidence, the user can run containment
+              actions. In Kubernetes mode, CivicShield can quarantine the
+              affected Pod and apply a deny-egress NetworkPolicy.
             </p>
 
             <div className="modal-grid">
@@ -210,164 +221,168 @@ function CaseOverviewPage({
   );
 
   return (
-    <div className="case-page">
-      <section className="hero-panel">
-        <div className="hero-copy">
-          <p className="eyebrow">Case Overview</p>
+    <div className="case-page compact-page">
+      <section className="page-title-row">
+        <div>
+          <p className="eyebrow">🔎 Case Overview</p>
           <h1>{episode?.episode_title || "Supply Chain Incident Case"}</h1>
           <p>
-            Splunk analyzes the logs. CivicShield separates the evidence and
-            turns it into a readable AI summary and Kubernetes response workflow.
+            Splunk analyzed {eventCount || "the"} events and grouped them into
+            one incident. Click a section to inspect details only when needed.
           </p>
-
-          <div className="hero-actions">
-            <button
-              type="button"
-              className="primary-action"
-              onClick={() => onTabChange("timeline")}
-            >
-              View Evidence
-            </button>
-            <button
-              type="button"
-              className="secondary-action"
-              onClick={() => setModalKey("ai")}
-            >
-              AI Summary
-            </button>
-            <button
-              type="button"
-              className="secondary-action"
-              onClick={() => onTabChange("containment")}
-            >
-              Run Containment
-            </button>
-          </div>
         </div>
 
-        <div className="flow-panel">
-          <FlowButton
-            number="01"
-            title="Logs"
-            subtitle="Indexed in Splunk"
-            active
-            onClick={() => setModalKey("logs")}
-          />
-          <FlowButton
-            number="02"
-            title="Analysis"
-            subtitle="Signals separated"
-            active
+        <div className="page-actions">
+          <button
+            type="button"
+            className="primary-action"
+            onClick={() => onTabChange("timeline")}
+          >
+            View Evidence
+          </button>
+          <button
+            type="button"
+            className="secondary-action"
+            onClick={() => setModalKey("ai")}
+          >
+            AI Summary
+          </button>
+          <button
+            type="button"
+            className="secondary-action"
+            onClick={() => onTabChange("containment")}
+          >
+            Run Response
+          </button>
+        </div>
+      </section>
+
+      <section className="compact-workbench">
+        <article className="case-main-card">
+          <div className="case-main-header">
+            <div>
+              <p className="eyebrow">Incident</p>
+              <h2>Analyzed supply-chain behavior</h2>
+            </div>
+
+            <span className={`risk-badge ${String(episode?.risk_level || "").toLowerCase()}`}>
+              {episode?.risk_level || "Unknown"}
+            </span>
+          </div>
+
+          <div className="case-identity">
+            <div>
+              <span>Pod</span>
+              <strong>{episode?.pod || "unknown"}</strong>
+            </div>
+            <div>
+              <span>Namespace</span>
+              <strong>{episode?.namespace || "unknown"}</strong>
+            </div>
+            <div>
+              <span>Package</span>
+              <strong>{episode?.package || "unknown"}</strong>
+            </div>
+          </div>
+
+          <div className="compact-flow">
+            <FlowStep
+              icon="📜"
+              title="Logs"
+              subtitle="Indexed in Splunk"
+              active
+              onClick={() => setModalKey("logs")}
+            />
+            <FlowStep
+              icon="🧪"
+              title="Analysis"
+              subtitle="Signals separated"
+              active
+              onClick={() => setModalKey("signals")}
+            />
+            <FlowStep
+              icon="🧠"
+              title="AI Summary"
+              subtitle="Readable explanation"
+              active
+              onClick={() => setModalKey("ai")}
+            />
+            <FlowStep
+              icon="🛡️"
+              title="Response"
+              subtitle="Kubernetes actions"
+              onClick={() => setModalKey("response")}
+            />
+          </div>
+        </article>
+
+        <aside className="case-side-summary">
+          <SummaryItem
+            icon="🚨"
+            label="Risk"
+            value={episode?.risk_level}
+            tone="red"
             onClick={() => setModalKey("signals")}
           />
-          <FlowButton
-            number="03"
-            title="AI Summary"
-            subtitle="Readable explanation"
-            active
-            onClick={() => setModalKey("ai")}
+          <SummaryItem
+            icon="☸️"
+            label="Pod"
+            value={episode?.pod}
+            tone="blue"
+            onClick={() =>
+              onOpenDrawer({
+                type: "Affected asset",
+                title: episode?.pod,
+                subtitle: "Kubernetes pod",
+                data: episode,
+              })
+            }
           />
-          <FlowButton
-            number="04"
-            title="Response"
-            subtitle="Kubernetes actions"
-            onClick={() => setModalKey("response")}
+          <SummaryItem
+            icon="📦"
+            label="Package"
+            value={episode?.package}
+            tone="yellow"
+            onClick={() => setModalKey("signals")}
           />
+          <SummaryItem
+            icon="📊"
+            label="Events"
+            value={eventCount}
+            tone="green"
+            onClick={() => setModalKey("logs")}
+          />
+        </aside>
+      </section>
+
+      <section className="evidence-preview-section">
+        <div className="section-mini-head">
+          <div>
+            <p className="eyebrow">🧩 Evidence Preview</p>
+            <h2>What the logs are saying</h2>
+          </div>
+
+          <button type="button" onClick={() => onTabChange("timeline")}>
+            Open full timeline
+          </button>
         </div>
-      </section>
 
-      <section className="info-grid">
-        <InfoCard
-          label="Risk"
-          value={episode?.risk_level}
-          tone="red"
-          onClick={() => setModalKey("signals")}
-        />
-        <InfoCard
-          label="Pod"
-          value={episode?.pod}
-          tone="blue"
-          onClick={() =>
-            onOpenDrawer({
-              type: "Affected asset",
-              title: episode?.pod,
-              subtitle: "Kubernetes pod",
-              data: episode,
-            })
-          }
-        />
-        <InfoCard
-          label="Package"
-          value={episode?.package}
-          tone="yellow"
-          onClick={() => setModalKey("signals")}
-        />
-        <InfoCard
-          label="Events"
-          value={eventCount}
-          tone="green"
-          onClick={() => setModalKey("logs")}
-        />
-      </section>
-
-      <section className="overview-grid">
-        <article className="evidence-panel">
-          <div className="panel-head">
-            <div>
-              <p className="eyebrow">Evidence Movement</p>
-              <h2>What the logs are saying</h2>
-            </div>
-
-            <button type="button" onClick={() => onTabChange("timeline")}>
-              Open full timeline
-            </button>
-          </div>
-
-          <div className="evidence-surface">
-            <div className="surface-grid" />
-            <div className="surface-line" />
-            <div className="surface-glow glow-a" />
-            <div className="surface-glow glow-b" />
-
-            <div className="stage-mini-grid">
-              {visibleStages.map((stage) => (
-                <StageMini
-                  key={stage.id}
-                  stage={stage}
-                  onClick={() =>
-                    onOpenDrawer({
-                      type: "Splunk evidence",
-                      title: stage.stage,
-                      subtitle: stage.headline,
-                      data: stage,
-                    })
-                  }
-                />
-              ))}
-            </div>
-          </div>
-        </article>
-
-        <article className="side-pocket">
-          <p className="eyebrow">AI Summary</p>
-          <h2>Open the readable explanation</h2>
-          <p>
-            Keep the page clean. Click when you want the natural-language case
-            explanation.
-          </p>
-          <button type="button" onClick={() => setModalKey("ai")}>
-            Open AI card
-          </button>
-        </article>
-
-        <article className="side-pocket">
-          <p className="eyebrow">Next Step</p>
-          <h2>Contain the affected workload</h2>
-          <p>{episode?.containment || "Containment Ready"}</p>
-          <button type="button" onClick={() => setModalKey("response")}>
-            Check response
-          </button>
-        </article>
+        <div className="evidence-preview-list">
+          {visibleStages.map((stage) => (
+            <StagePreview
+              key={stage.id}
+              stage={stage}
+              onClick={() =>
+                onOpenDrawer({
+                  type: "Splunk evidence",
+                  title: stage.stage,
+                  subtitle: stage.headline,
+                  data: stage,
+                })
+              }
+            />
+          ))}
+        </div>
       </section>
 
       <PopModal modal={modals[modalKey]} onClose={() => setModalKey(null)} />
